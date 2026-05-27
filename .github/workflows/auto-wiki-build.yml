@@ -1,0 +1,34 @@
+name: Auto Wiki Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'raw/**'
+      - 'links.csv'
+      - 'ingest.py'
+
+jobs:
+  build-wiki:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run ingest
+        run: python ingest.py
+
+      - name: Commit generated wiki
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: auto-build wiki from raw sources [skip ci]'
+          file_pattern: 'wiki/** graphify-out/**'
