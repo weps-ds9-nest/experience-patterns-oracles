@@ -5,11 +5,12 @@ A self-contained remote MCP server for consulting a curated knowledge graph of E
 ## How it works
 
 ```
-links.csv  →  ingest.py  →  raw/       (Jina Reader markdown)
-                         →  wiki/      (curated entries)
-                         →  graphify   (auto-runs on server startup)
-                         →  graphify-out/graph.json
-                         →  server.py  (MCP over HTTP)
+links/collections/*.csv  →  ingest.py  →  links/links.csv  (merged, deduped)
+                                      →  raw/             (Jina Reader markdown)
+                                      →  wiki/            (curated entries)
+                                      →  graphify         (auto-runs on startup)
+                                      →  graphify-out/graph.json
+                                      →  server.py        (MCP over HTTP)
 ```
 
 On startup, `server.py` checks whether `graphify-out/graph.json` exists. If it doesn't, it runs `graphify ./wiki --no-viz` automatically — the server compiles its own brain before accepting any request.
@@ -18,15 +19,19 @@ On startup, `server.py` checks whether `graphify-out/graph.json` exists. If it d
 
 ```
 experience-patterns-oracles/
-├── .github/workflows/
-│   └── auto-wiki-build.yml   # Optional CI fallback
-├── raw/                       # Markdown fetched from r.jina.ai
-├── wiki/                      # Curated wiki entries (source for the graph)
-├── graphify-out/              # graph.json compiled by Graphifyy on startup
-├── links.csv                  # Raindrop.io export (id, title, url, tags, description)
-├── ingest.py                  # Fetch raw markdown from links.csv via r.jina.ai
-├── server.py                  # FastMCP server — 4 consultation tools
-└── pyproject.toml             # Dependencies and project config (uv)
+├── .github/
+│   ├── copilot-instructions.md   # Copilot agent instructions for this repo
+│   └── workflows/auto-wiki-build.yml
+├── links/
+│   ├── links.csv                 # Master URL list (id, title, url, tags, description)
+│   └── collections/              # Drop Raindrop CSV exports here
+├── raw/                          # Auto-generated markdown from r.jina.ai (do not edit)
+├── wiki/                         # Curated wiki entries — edit and add [[wiki-links]] here
+├── graphify-out/                 # Auto-generated knowledge graph (do not edit)
+│   └── graph.json
+├── ingest.py                     # Merges collections + fetches markdown
+├── server.py                     # FastMCP server — 4 consultation tools
+└── pyproject.toml                # Dependencies and project config (uv)
 ```
 
 ## Setup
@@ -40,21 +45,32 @@ uv sync --no-install-project
 
 ## Usage
 
-### 1. Populate links.csv
+### 1. Add links — Raindrop.io collections workflow
 
-Export your Raindrop.io collection as CSV. The file expects these columns:
+Export any Raindrop collection as CSV and drop it in `links/collections/`:
 
+```bash
+links/collections/ux-patterns.csv
+links/collections/cognitive-biases.csv
+# ... add as many exports as you like
+```
+
+Raindrop's export format (`id, title, note, excerpt, url, folder, tags, created, …`) is supported natively. When you run `ingest.py`, it automatically merges all collection CSVs into `links/links.csv`, deduplicating by URL — so dropping the same export twice is safe.
+
+You can also add links manually to `links/links.csv` using the columns:
 ```
 id,title,url,tags,description
 ```
 
-### 2. Ingest — fetch raw markdown
+### 2. Ingest — merge collections and fetch markdown
 
 ```bash
 uv run --no-project python ingest.py
 ```
 
-Each URL is fetched via `https://r.jina.ai/{url}` with a 2-second polite delay and written to `raw/<slug>.md`.
+This runs in two steps:
+1. **Merge** — all CSVs in `links/collections/` are merged into `links/links.csv`
+2. **Fetch** — each URL not yet in `raw/` is fetched via `https://r.jina.ai/{url}` with a 2-second polite delay and written to `raw/<slug>.md`
 
 ### 3. Curate — promote entries to wiki
 
