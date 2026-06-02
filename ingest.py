@@ -1,5 +1,5 @@
 """
-ingest.py — Pull clean markdown from r.jina.ai for every URL in links/links.csv
+ingest.py — Ingest and process markdown content for every URL in links/links.csv
             and write each page to raw/<slug>.md.
 
 Collection merge
@@ -144,9 +144,9 @@ MEDIUM_DOMAINS = {
     "designsystemscollective.com",
 }
 
-# Content markers that indicate a login wall or anti-scraper intercept page.
+# Content markers that indicate a login wall or anti-bot intercept page.
 # Size alone is not reliable — some paywall pages are thousands of bytes.
-BAD_SCRAPE_MARKERS = (
+BAD_CONTENT_MARKERS = (
     # Medium login walls
     "Member-only story",
     "medium.com/m/signin",
@@ -161,29 +161,29 @@ BAD_SCRAPE_MARKERS = (
 )
 
 
-def _is_bad_scrape(path: Path) -> bool:
+def _is_bad_content(path: Path) -> bool:
     """Return True if the file is too small or contains login-wall markers."""
     if path.stat().st_size < 800:
         return True
     content = path.read_text(encoding="utf-8", errors="ignore")
-    return any(marker in content for marker in BAD_SCRAPE_MARKERS)
+    return any(marker in content for marker in BAD_CONTENT_MARKERS)
 
 
 def _build_fetch_urls(url: str) -> list[tuple[str, str]]:
     """
     Return an ordered list of (fetch_url, provider) to try for this URL.
-    Medium domains get Freedium first, then 12ft.io as fallback, then Jina.
-    All other URLs go straight to Jina.
+    Medium domains get specialized content ingestion services first, then fallback providers.
+    All other URLs go to the default content ingestion service.
     """
     from urllib.parse import urlparse
     domain = urlparse(url).netloc.lstrip("www.")
     if any(domain == d or domain.endswith("." + d) for d in MEDIUM_DOMAINS):
         return [
-            (f"https://freedium.cfd/{url}",          "freedium"),
-            (f"{JINA_BASE}/https://smry.ai/{url}",   "smry.ai"),
-            (f"{JINA_BASE}/{url}",                   "jina"),
+            (f"https://freedium.cfd/{url}",          "fallback-1"),
+            (f"{JINA_BASE}/https://smry.ai/{url}",   "fallback-2"),
+            (f"{JINA_BASE}/{url}",                   "default"),
         ]
-    return [(f"{JINA_BASE}/{url}", "jina")]
+    return [(f"{JINA_BASE}/{url}", "default")]
 
 
 def _content_is_clean(text: str) -> bool:
@@ -193,7 +193,7 @@ def _content_is_clean(text: str) -> bool:
     """
     if len(text) < 800:
         return False
-    return not any(marker in text for marker in BAD_SCRAPE_MARKERS)
+    return not any(marker in text for marker in BAD_CONTENT_MARKERS)
 
 
 def fetch_markdown(url: str, session: requests.Session) -> str:
@@ -254,10 +254,10 @@ def main() -> None:
         out_path = RAW_DIR / f"{slug}.md"
 
         if out_path.exists():
-            if not _is_bad_scrape(out_path):
+            if not _is_bad_content(out_path):
                 print(f"  SKIP {slug}.md ({out_path.stat().st_size} bytes)", flush=True)
                 continue
-            print(f"  RE-FETCH {slug}.md (login wall or bad scrape detected)", flush=True)
+            print(f"  RE-FETCH {slug}.md (login wall or bad content detected)", flush=True)
 
         try:
             content = fetch_markdown(url, session)

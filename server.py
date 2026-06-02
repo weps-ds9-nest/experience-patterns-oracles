@@ -1,5 +1,8 @@
 """
-server.py — Remote UX Pattern Oracle via FastMCP.
+server.py — Public UX Pattern Oracle via FastMCP.
+
+This is a publicly accessible MCP server for consulting UX and Behavioural
+Design Patterns. No authentication required — rate-limited to prevent abuse.
 
 Startup sequence
 ----------------

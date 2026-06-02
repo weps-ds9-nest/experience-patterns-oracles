@@ -6,7 +6,7 @@ A self-contained remote MCP server for consulting a curated knowledge graph of E
 
 ```
 links/collections/*.csv  →  ingest.py  →  links/links.csv  (merged, deduped)
-                                      →  raw/             (Jina Reader markdown)
+                                      →  raw/             (ingested markdown)
                                       →  wiki/            (curated entries)
                                       →  graphify         (auto-runs on startup)
                                       →  graphify-out/graph.json
@@ -22,17 +22,16 @@ experience-patterns-oracles/
 ├── .github/
 │   ├── copilot-instructions.md   # Copilot agent instructions for this repo
 │   └── workflows/auto-wiki-build.yml
-├── links/
-│   ├── links.csv                 # Master URL list (id, title, url, tags, description)
-│   └── collections/              # Drop Raindrop CSV exports here
-├── raw/                          # Auto-generated markdown from r.jina.ai (do not edit)
 ├── wiki/                         # Curated wiki entries — edit and add [[wiki-links]] here
 ├── graphify-out/                 # Auto-generated knowledge graph (do not edit)
 │   └── graph.json
-├── ingest.py                     # Merges collections + fetches markdown
+├── ingest.py                     # Merges collections + ingests markdown
 ├── server.py                     # FastMCP server — 4 consultation tools
+├── DATA_MANAGEMENT.md            # Guide for local data management
 └── pyproject.toml                # Dependencies and project config (uv)
 ```
+
+**Note:** The `raw/` and `links/` directories are excluded from git for copyright and bloat reasons. See `DATA_MANAGEMENT.md` for local workflow instructions.
 
 ## Setup
 
@@ -79,15 +78,12 @@ In watch mode, the script:
 2. **Watches for changes** — the moment you drop or modify a CSV in `links/collections/`, it detects the change and merges new links automatically
 3. Prints how many new links were added and reminds you to run `ingest.py` (without `--watch`) to fetch the markdown
 
-Each URL is fetched via `https://r.jina.ai/{url}` with a 2-second polite delay and written to `raw/<slug>.md`. No Jina account required.
+Each URL is fetched via content ingestion services with a 2-second polite delay and written to `raw/<slug>.md`.
 
-**Content fetching fallback providers:**
-For Medium domains (medium.com, uxplanet.org, etc.), the system uses a fallback chain:
-1. freedium.cfd (first attempt)
-2. smry.ai via Jina proxy (second attempt)
-3. Plain Jina (final fallback)
+**Content ingestion fallback services:**
+For Medium domains (medium.com, uxplanet.org, etc.), the system uses a fallback chain of content ingestion services to ensure reliable retrieval even if one service is blocked or fails.
 
-This ensures content can be retrieved even if one provider is blocked or fails. See `.github/copilot-instructions.md` for detailed scrape failure monitoring.
+See `DATA_MANAGEMENT.md` for detailed data management instructions.
 
 ### 3. Curate — promote entries to wiki
 
@@ -130,7 +126,29 @@ The server attempts to compile the graph on startup:
 - Falls back to other LLM backends if configured
 - For fastest cold starts, commit `graphify-out/graph.json` after local compilation
 
-## MCP tools
+## Access & Usage
+
+The UX Pattern Oracle is a **publicly accessible MCP server** designed as a free consultation service for UX and Behavioural Design Patterns.
+
+### Public Access
+- No authentication required
+- Anyone with the server URL can query the knowledge graph
+- Rate-limited to 60 requests per minute per IP to prevent abuse
+- Intended for educational and design consultation purposes
+
+### How to Connect
+Add this MCP server to your Claude Desktop or compatible MCP client:
+```
+Server URL: https://your-render-app-url.onrender.com/sse
+Transport: SSE (Server-Sent Events)
+```
+
+### Cost
+- Free to use (no API keys required for end users)
+- Hosted on Render free tier
+- Knowledge graph compiled from publicly available UX design resources
+
+## MCP Tools
 
 | Tool | Description |
 |---|---|
@@ -149,3 +167,10 @@ The server attempts to compile the graph on startup:
 | `uvicorn` | ASGI server for HTTP transport |
 | `httpx` | HTTP engine for FastMCP transport layer |
 | `anyio` | Async I/O compatibility |
+
+## Data Management
+
+The `raw/` and `links/` directories are excluded from git. See `DATA_MANAGEMENT.md` for:
+- Why these are excluded (copyright, bloat, freshness)
+- Local workflow for content ingestion
+- How to contribute curated content to `wiki/`
