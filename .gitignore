@@ -22,5 +22,11 @@ graphify-out/cache/
 wiki/graphify-out/
 
 
+# Keep folder structure but ignore contents
+raw/*
+links/*
+!raw/.gitkeep
+!links/.gitkeep
+
 # Keep only curated wiki content
 !wiki/.gitkeep
