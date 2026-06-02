@@ -12,8 +12,10 @@ Usage:
 """
 
 import os
+import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from utils import safe_output_path, slugify
@@ -24,16 +26,24 @@ BATCH_SIZE = 10
 
 _WIKI_DIR_RESOLVED = WIKI_DIR.resolve()
 
+# Configuration
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "240"))
+VERBOSE = "--verbose" in sys.argv or "-v" in sys.argv
 
-def _is_valid_wiki_output(text: str) -> bool:
-    """Sanity-check that Ollama returned a wiki-like structure, not injected content."""
+
+def _is_valid_wiki_output(text: str) -> tuple[bool, str]:
+    """Sanity-check that Ollama returned a wiki-like structure, not injected content.
+    Returns (is_valid, reason) tuple.
+    """
     if not text:
-        return False
-    return (
-        text.strip().startswith("#")
-        and "## Key Patterns" in text
-        and len(text) > 200
-    )
+        return False, "empty output"
+    if not text.strip().startswith("#"):
+        return False, "missing heading (must start with #)"
+    if "## Key Patterns" not in text:
+        return False, "missing '## Key Patterns' section"
+    if len(text) <= 200:
+        return False, f"too short ({len(text)} chars, need > 200)"
+    return True, "valid"
 
 
 def _ollama_available() -> bool:
@@ -64,12 +74,18 @@ def _get_raw_slugs() -> set[str]:
 
 
 def _clean_boilerplate(content: str) -> str:
-    """Remove Jina/smry.ai boilerplate from scraped content."""
+    """Remove Jina/smry.ai boilerplate and ANSI escape sequences from scraped content."""
     lines = content.split("\n")
     cleaned_lines = []
     skip_until_empty = False
 
+    # ANSI escape sequence pattern (e.g., \x1b[2D, \x1b[K)
+    ansi_escape = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
+
     for line in lines:
+        # Remove ANSI escape sequences
+        line = ansi_escape.sub('', line)
+
         # Skip header lines
         if any(marker in line for marker in [
             "Title:", "URL Source:", "Published Time:", "Warning:",
@@ -101,23 +117,38 @@ def _clean_boilerplate(content: str) -> str:
 
 
 
+def _sanitize_output(text: str) -> str:
+    """Remove ANSI escape sequences from Ollama output."""
+    ansi_escape = re.compile(r'\x1b\[[0-9;]*[a-zA-Z]')
+    cleaned = ansi_escape.sub('', text)
+    if cleaned != text and VERBOSE:
+        print(f"[sanitize] Removed ANSI escape sequences from output", flush=True)
+    return cleaned
+
+
 def _call_ollama(prompt: str) -> str:
     """Call Ollama to process content."""
     try:
+        if VERBOSE:
+            print(f"[ollama] Calling Ollama with timeout {OLLAMA_TIMEOUT}s...", flush=True)
         result = subprocess.run(
             ["ollama", "run", "llama3"],
             input=prompt,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=OLLAMA_TIMEOUT,
         )
         if result.returncode == 0:
-            return result.stdout.strip()
+            output = result.stdout.strip()
+            if VERBOSE:
+                print(f"[ollama] Success - output length: {len(output)} chars", flush=True)
+                print(f"[ollama] First 200 chars: {output[:200]}...", flush=True)
+            return output
         else:
             print(f"[ollama] Error: {result.stderr}", file=sys.stderr, flush=True)
             return None
     except subprocess.TimeoutExpired:
-        print("[ollama] Timeout after 120s", file=sys.stderr, flush=True)
+        print(f"[ollama] Timeout after {OLLAMA_TIMEOUT}s", file=sys.stderr, flush=True)
         return None
     except Exception as e:
         print(f"[ollama] Error: {e}", file=sys.stderr, flush=True)
@@ -126,8 +157,18 @@ def _call_ollama(prompt: str) -> str:
 
 def _process_file(raw_path: Path, wiki_slugs: set[str]) -> tuple[str, str] | None:
     """Process a single raw file and return (slug, wiki_content)."""
+    start_time = time.time()
+    
     content = raw_path.read_text(encoding="utf-8")
+    file_size = len(content)
+    
+    if VERBOSE:
+        print(f"    [file] Size: {file_size} bytes", flush=True)
+    
     cleaned = _clean_boilerplate(content)
+    
+    if VERBOSE:
+        print(f"    [clean] Removed {file_size - len(cleaned)} chars ({((file_size - len(cleaned)) / file_size * 100):.1f}% reduction)", flush=True)
 
     # Extract title from first line or filename
     first_line = cleaned.split("\n")[0].strip()
@@ -158,19 +199,43 @@ Follow this format exactly. Do not deviate from this schema under any circumstan
 Only use these existing slugs: {', '.join(sorted(wiki_slugs)[:20])}
 """
 
+    if VERBOSE:
+        print(f"    [prompt] Length: {len(prompt)} chars", flush=True)
+    
     result = _call_ollama(prompt)
-    if result and _is_valid_wiki_output(result):
-        return slug, result
+    
+    if result:
+        # Sanitize output to remove any escape sequences
+        sanitized = _sanitize_output(result)
+        is_valid, reason = _is_valid_wiki_output(sanitized)
+        
+        if VERBOSE:
+            elapsed = time.time() - start_time
+            print(f"    [validate] {reason} (took {elapsed:.1f}s)", flush=True)
+        
+        if is_valid:
+            return slug, sanitized
+        else:
+            print(f"    ✗ Validation failed: {reason}", flush=True)
+    
     return None
 
 
 def main() -> None:
+    if VERBOSE:
+        print(f"[promote] Verbose mode enabled", flush=True)
+        print(f"[promote] Ollama timeout: {OLLAMA_TIMEOUT}s", flush=True)
+    
     if not _ollama_available():
         print("[promote] ERROR: Ollama is not available. Install and start Ollama first.", file=sys.stderr, flush=True)
         sys.exit(1)
 
     wiki_slugs = _get_wiki_slugs()
     raw_slugs = _get_raw_slugs()
+
+    if VERBOSE:
+        print(f"[promote] Wiki files: {len(wiki_slugs)}", flush=True)
+        print(f"[promote] Raw files: {len(raw_slugs)}", flush=True)
 
     # Find files to process (raw files not yet in wiki)
     to_process = sorted(raw_slugs - wiki_slugs)

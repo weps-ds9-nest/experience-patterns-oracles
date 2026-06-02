@@ -27,6 +27,7 @@ experience-patterns-oracles/
 │   └── graph.json
 ├── ingest.py                     # Merges collections + ingests markdown
 ├── promote_raw_to_wiki.py        # Promotes raw content to wiki using Ollama
+├── update_wikilinks.py           # Updates wikilinks using semantic similarity + graphify
 ├── server.py                     # FastMCP server — 4 consultation tools
 ├── utils.py                      # Shared helper functions (validate_url, slugify, etc.)
 ├── DATA_MANAGEMENT.md            # Guide for local data management
@@ -89,7 +90,40 @@ See `DATA_MANAGEMENT.md` for detailed data management instructions.
 
 ### 3. Curate — promote entries to wiki
 
+**Auto-promote with Ollama:**
+```bash
+# Basic promotion
+uv run python promote_raw_to_wiki.py
+
+# Verbose mode (shows file sizes, processing time, Ollama output)
+uv run python promote_raw_to_wiki.py --verbose
+
+# Custom timeout (default 240s)
+OLLAMA_TIMEOUT=300 uv run python promote_raw_to_wiki.py
+```
+
+The script now:\- Cleans ANSI escape sequences from both input and output
+- Provides detailed validation error messages
+- Supports configurable timeout via `OLLAMA_TIMEOUT` env var
+- Logs processing metrics in verbose mode
+
+**Manual curation:**
 Copy and edit files from `raw/` into `wiki/`. Add `[[wiki-links]]` to connect related patterns.
+
+**Update wikilinks:**
+```bash
+# Update all wikilinks using semantic similarity + graph relationships
+uv run python update_wikilinks.py
+
+# Preview changes without writing
+uv run python update_wikilinks.py --dry-run
+
+# Update a specific file
+uv run python update_wikilinks.py --file specific-file.md
+
+# Verbose logging
+uv run python update_wikilinks.py --verbose
+```
 
 ### 4. Serve
 
@@ -107,14 +141,17 @@ The MCP server listens on `http://0.0.0.0:8000` (default).
 
 ### Local setup with Ollama
 
-If you have Ollama installed locally, use it for graph compilation without API keys:
+If you have Ollama installed locally, use it for graph compilation and content promotion without API keys:
 
 ```bash
 # Compile knowledge graph with Ollama
 uv run graphify wiki --no-viz --backend ollama
 
-# Auto-promote raw files to wiki
-uv run python promote_raw_to_wiki.py
+# Auto-promote raw files to wiki (with verbose logging)
+uv run python promote_raw_to_wiki.py --verbose
+
+# Update wikilinks using semantic similarity + graph relationships
+uv run python update_wikilinks.py
 ```
 
 ### Deploying

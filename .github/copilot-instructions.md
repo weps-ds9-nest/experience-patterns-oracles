@@ -8,6 +8,8 @@ knowledge graph of UX and Behavioural Design Patterns.
 - **`ingest.py`** — ingests and processes markdown content for
   every URL in `links/links.csv` and writes to `raw/`
 - **`promote_raw_to_wiki.py`** — curates and promotes raw markdown files to wiki/ using Ollama
+  (supports `--verbose` mode, configurable timeout via `OLLAMA_TIMEOUT`, cleans ANSI escape sequences)
+- **`update_wikilinks.py`** — updates wikilinks in wiki files using semantic similarity (Ollama) and graphify relationships
 - **`server.py`** — FastMCP server; compiles `graphify-out/graph.json` on
   startup if missing, then serves 4 MCP tools over HTTP on `$PORT` (default 8000)
 - **`utils.py`** — shared utility functions (validate_url, slugify, safe_output_path)
@@ -56,6 +58,13 @@ Never delete entries from `links/links.csv` without explicit user confirmation.
    │
 3. Curate: promote and edit files from raw/ into wiki/
            add [[wiki-links]] to connect related patterns
+   
+   # Auto-promote with Ollama (verbose mode recommended)
+   uv run python promote_raw_to_wiki.py --verbose
+   
+   # Update wikilinks using semantic similarity + graph relationships
+   uv run python update_wikilinks.py
+
 4. uv run python server.py
    └── compiles graphify-out/graph.json on first run, skips on subsequent runs
        serves MCP over HTTP on 0.0.0.0:$PORT
@@ -74,14 +83,30 @@ Use Ollama for local development without API keys:
 uv run graphify wiki --no-viz --backend ollama
 
 # Auto-promote raw files to wiki (uses Ollama)
-uv run python promote_raw_to_wiki.py
+uv run python promote_raw_to_wiki.py --verbose
+
+# Update wikilinks using semantic similarity + graph relationships
+uv run python update_wikilinks.py
 ```
 
 The `promote_raw_to_wiki.py` script:
 - Identifies raw/ files not yet in wiki/
 - Uses Ollama to clean, summarize, and add wiki-links
+- Cleans ANSI escape sequences from both input and output
+- Supports `--verbose` flag for detailed logging (file sizes, processing time, Ollama output)
+- Configurable timeout via `OLLAMA_TIMEOUT` env var (default 240s)
+- Provides detailed validation error messages
 - Processes in batches of 10 with confirmation
 - Follows the logic from `.github/prompts/build-wiki.prompt.md`
+
+The `update_wikilinks.py` script:
+- Updates the ## Related section in wiki files
+- Uses semantic similarity via Ollama to find related patterns
+- Uses graphify-out/graph.json to find structurally connected nodes
+- Combines both approaches for best results
+- Supports `--dry-run` mode to preview changes
+- Supports `--file` to update a single file
+- Supports `--verbose` for detailed logging
 
 ### Deploying to Render
 
@@ -175,6 +200,7 @@ experience-patterns-oracles/
 │   └── graph.json
 ├── ingest.py                     ← merge collections + ingest markdown
 ├── promote_raw_to_wiki.py        ← promote raw content to wiki using Ollama
+├── update_wikilinks.py           ← update wikilinks using semantic similarity + graphify
 ├── server.py                     ← FastMCP server + 4 tools
 ├── utils.py                      ← shared helper functions (validate_url, slugify, etc.)
 ├── DATA_MANAGEMENT.md            ← local data management guide
