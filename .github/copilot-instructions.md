@@ -19,11 +19,11 @@ knowledge graph of UX and Behavioural Design Patterns.
 The source of truth for URLs is **`links/links.csv`** with columns:
 `id, title, url, tags, description`
 
-### Raindrop.io collection workflow
+### Bookmark collection workflow
 
 When the user drops a new CSV file into **`links/collections/`**, you must:
 
-1. Read the CSV — it may be in Raindrop.io export format with columns:
+1. Read the CSV — it may be in standard bookmark export format with columns:
    `id, title, note, excerpt, url, folder, tags, created, cover, highlights, favorite`
 2. Map columns: `note` or `excerpt` → `description`; all others map by matching name
 3. Extract every row that has a non-empty `url`
@@ -89,7 +89,7 @@ The `promote_raw_to_wiki.py` script:
 
 The server will try Ollama on Render if available, otherwise skip graph compilation and use committed graph.json.
 
-### Adding a single URL without a Raindrop export
+### Adding a single URL without a bookmark export
 
 Two ways to add content without going through the CSV workflow:
 

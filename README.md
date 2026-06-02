@@ -44,9 +44,9 @@ uv sync --no-install-project
 
 ## Usage
 
-### 1. Add links — Raindrop.io collections workflow
+### 1. Add links — Bookmark collections workflow
 
-Export any Raindrop collection as CSV and drop it in `links/collections/`:
+Export bookmarks as CSV and drop them in `links/collections/`:
 
 ```bash
 links/collections/ux-patterns.csv
@@ -54,7 +54,7 @@ links/collections/cognitive-biases.csv
 # ... add as many exports as you like
 ```
 
-Raindrop's export format (`id, title, note, excerpt, url, folder, tags, created, …`) is supported natively. When you run `ingest.py`, it automatically merges all collection CSVs into `links/links.csv`, deduplicating by URL — so dropping the same export twice is safe.
+Standard bookmark export formats (with columns like `id, title, note, excerpt, url, folder, tags, created, …`) are supported natively. When you run `ingest.py`, it automatically merges all collection CSVs into `links/links.csv`, deduplicating by URL — so dropping the same export twice is safe.
 
 You can also add links manually to `links/links.csv` using the columns:
 ```

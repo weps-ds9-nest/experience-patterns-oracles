@@ -27,7 +27,7 @@ Ingested content becomes stale over time. The ingestion workflow is designed to 
 
 ### For Content Contributors
 
-1. **Add new URLs** to `links/collections/` (e.g., export from Raindrop.io)
+1. **Add new URLs** to `links/collections/` (e.g., export bookmarks as CSV)
 2. **Run the ingest script** to fetch content:
    ```bash
    uv run --no-project python ingest.py
