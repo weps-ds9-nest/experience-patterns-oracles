@@ -31,7 +31,7 @@ experience-patterns-oracles/
 └── pyproject.toml                # Dependencies and project config (uv)
 ```
 
-**Note:** The `raw/` and `links/` directories are excluded from git for copyright and bloat reasons. See `DATA_MANAGEMENT.md` for local workflow instructions.
+**Note:** The `raw/` and `links/` directories have their folders tracked in git but their contents are ignored to keep the repository lightweight. See `DATA_MANAGEMENT.md` for local workflow instructions.
 
 ## Setup
 

@@ -1,27 +1,19 @@
 # Data Management
 
-This document explains how data is managed locally and why certain directories are excluded from the public repository.
+This document explains how data is managed locally.
 
-## Excluded Directories
+## Directory Structure
 
-The following directories are **excluded from git** and managed locally:
-
-- **`raw/`** - Contains ingested markdown content from external sources
-- **`links/`** - Contains URL lists and collection exports
+- **`raw/`** - Contains ingested markdown content from external sources (folder tracked, contents ignored)
+- **`links/`** - Contains URL lists and collection exports (folder tracked, contents ignored)
 - **`wiki/graphify-out/`** - Cache directory (not used by the MCP server)
 
-## Why These Are Excluded
+## Why Contents Are Ignored
 
-### Copyright Concerns
-The `raw/` directory contains content ingested from external websites. Redistributing this content in a public repository may violate copyright terms of the original sources.
-
-### Repository Bloat
 - `raw/` contains hundreds of markdown files that grow over time
 - `links/` contains CSV files that accumulate URLs
-- Including these would make the repository very large and slow to clone
-
-### Data Freshness
-Ingested content becomes stale over time. The ingestion workflow is designed to be run locally to ensure content is up-to-date.
+- Keeping these out of git keeps the repository lightweight and fast to clone
+- Ingested content becomes stale over time; the workflow is designed to be run locally to ensure freshness
 
 ## Local Workflow
 
