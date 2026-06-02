@@ -26,7 +26,9 @@ experience-patterns-oracles/
 ├── graphify-out/                 # Auto-generated knowledge graph (do not edit)
 │   └── graph.json
 ├── ingest.py                     # Merges collections + ingests markdown
+├── promote_raw_to_wiki.py        # Promotes raw content to wiki using Ollama
 ├── server.py                     # FastMCP server — 4 consultation tools
+├── utils.py                      # Shared helper functions (validate_url, slugify, etc.)
 ├── DATA_MANAGEMENT.md            # Guide for local data management
 └── pyproject.toml                # Dependencies and project config (uv)
 ```
@@ -38,8 +40,8 @@ experience-patterns-oracles/
 Requires Python ≥ 3.12 and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-# Install dependencies (no package build step needed)
-uv sync --no-install-project
+# Install dependencies
+uv sync
 ```
 
 ## Usage
@@ -65,12 +67,12 @@ id,title,url,tags,description
 
 **One-shot** (merge then fetch in a single run):
 ```bash
-uv run --no-project python ingest.py
+uv run python ingest.py
 ```
 
 **Watch mode** (recommended — leave running in the background):
 ```bash
-uv run --no-project python ingest.py --watch
+uv run python ingest.py --watch
 ```
 
 In watch mode, the script:
@@ -92,9 +94,9 @@ Copy and edit files from `raw/` into `wiki/`. Add `[[wiki-links]]` to connect re
 ### 4. Serve
 
 ```bash
-uv run --no-project python server.py
+uv run python server.py
 # or with a custom port:
-PORT=9000 uv run --no-project python server.py
+PORT=9000 uv run python server.py
 ```
 
 On first run with a populated `wiki/`, Graphifyy compiles `graphify-out/graph.json` automatically. Subsequent starts skip compilation.
@@ -109,10 +111,10 @@ If you have Ollama installed locally, use it for graph compilation without API k
 
 ```bash
 # Compile knowledge graph with Ollama
-uv run --no-project graphify wiki --no-viz --backend ollama
+uv run graphify wiki --no-viz --backend ollama
 
 # Auto-promote raw files to wiki
-uv run --no-project python promote_raw_to_wiki.py
+uv run python promote_raw_to_wiki.py
 ```
 
 ### Deploying

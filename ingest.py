@@ -12,18 +12,18 @@ Rows are deduplicated by URL so merging the same export twice is safe.
 Usage:
     python3 ingest.py              # one-shot: merge collections then fetch
     python3 ingest.py --watch      # daemon: auto-merge on CSV add/modify
-    uv run --no-project python ingest.py --watch
+    uv run python ingest.py --watch
 """
 
 import csv
-import ipaddress
-import re
 import sys
 import time
 from pathlib import Path
 from urllib.parse import urlparse
 
 import requests
+
+from utils import safe_output_path, slugify, validate_url
 
 LINKS_DIR       = Path("links")
 LINKS_FILE      = LINKS_DIR / "links.csv"
@@ -36,40 +36,6 @@ FIELDNAMES = ["id", "title", "url", "tags", "description"]
 
 _RAW_DIR_RESOLVED = RAW_DIR.resolve()
 
-_BLOCKED_NETWORKS = [
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("169.254.0.0/16"),   # link-local / cloud metadata
-    ipaddress.ip_network("127.0.0.0/8"),       # loopback
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-]
-
-
-def _validate_url(url: str) -> None:
-    """Raise ValueError if the URL is not a safe external HTTPS URL."""
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https"):
-        raise ValueError(f"Blocked non-HTTP scheme: {parsed.scheme!r}")
-    hostname = parsed.hostname or ""
-    try:
-        addr = ipaddress.ip_address(hostname)
-        for net in _BLOCKED_NETWORKS:
-            if addr in net:
-                raise ValueError(f"Blocked private/link-local IP: {addr}")
-    except ValueError as e:
-        if "Blocked" in str(e):
-            raise
-        # Hostname is a domain name, proceed
-
-
-def _safe_output_path(directory: Path, slug: str, resolved_base: Path) -> Path:
-    candidate = (directory / f"{slug}.md").resolve()
-    if not candidate.is_relative_to(resolved_base):
-        raise ValueError(f"Slug '{slug}' escapes output directory")
-    return candidate
-
 
 # Maps source column names (Raindrop or our own) to our FIELDNAMES
 RAINDROP_MAP = {
@@ -80,12 +46,6 @@ RAINDROP_MAP = {
     "note":    "description",   # prefer note; fall back to excerpt
     "excerpt": "description",
 }
-
-
-def slugify(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^\w\s-]", "", text)
-    return re.sub(r"[\s_-]+", "-", text).strip("-")
 
 
 def _read_links_csv() -> tuple[list[dict], set[str]]:
@@ -183,6 +143,21 @@ MEDIUM_DOMAINS = {
     "designsystemscollective.com",
 }
 
+# Blocked domains to prevent SSRF attacks
+# Internal/private domains that should never be fetched
+BLOCKED_DOMAINS = {
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    # Cloud metadata endpoints
+    "169.254.169.254",
+    "metadata.google.internal",
+    # Internal network ranges (common patterns)
+    "10.0.0.0",
+    "172.16.0.0",
+    "192.168.0.0",
+}
+
 # Content markers that indicate a login wall or anti-bot intercept page.
 # Size alone is not reliable — some paywall pages are thousands of bytes.
 BAD_CONTENT_MARKERS = (
@@ -200,6 +175,25 @@ BAD_CONTENT_MARKERS = (
 )
 
 
+def _is_blocked_domain(url: str) -> bool:
+    """Check if URL contains a blocked domain to prevent SSRF attacks."""
+    parsed = urlparse(url)
+    hostname = parsed.hostname or ""
+    if not hostname:
+        return True  # Block URLs without hostname
+
+    # Check exact matches
+    if hostname in BLOCKED_DOMAINS:
+        return True
+
+    # Check if hostname starts with any blocked network prefix
+    for blocked in BLOCKED_DOMAINS:
+        if hostname.startswith(blocked):
+            return True
+
+    return False
+
+
 def _is_bad_content(path: Path) -> bool:
     """Return True if the file is too small or contains login-wall markers."""
     if path.stat().st_size < 800:
@@ -214,7 +208,6 @@ def _build_fetch_urls(url: str) -> list[tuple[str, str]]:
     Medium domains get specialized content ingestion services first, then fallback providers.
     All other URLs go to the default content ingestion service.
     """
-    _validate_url(url)
     domain = urlparse(url).netloc.lstrip("www.")
     if any(domain == d or domain.endswith("." + d) for d in MEDIUM_DOMAINS):
         return [
@@ -240,11 +233,21 @@ def fetch_markdown(url: str, session: requests.Session) -> str:
     Try each provider in order until one returns clean content.
     Raises the last exception if all providers fail.
     """
+    # SSRF protection: check original URL and all fetch URLs
+    if _is_blocked_domain(url):
+        raise ValueError(f"Blocked domain in original URL: {url}")
+
     last_exc: Exception = RuntimeError("No providers configured")
     for fetch_url, provider in _build_fetch_urls(url):
+        # SSRF protection: check each fetch URL
+        if _is_blocked_domain(fetch_url):
+            print(f"  [{provider}] blocked by SSRF protection — skipping", flush=True)
+            last_exc = ValueError(f"{provider} blocked by SSRF protection")
+            continue
+
         print(f"  GET [{provider}] {fetch_url}", flush=True)
         try:
-            _validate_url(fetch_url)
+            validate_url(fetch_url)
             resp = session.get(fetch_url, timeout=30, headers={"Accept": "text/markdown"})
             resp.raise_for_status()
             text = resp.text
@@ -292,14 +295,14 @@ def main() -> None:
             continue
 
         try:
-            _validate_url(url)
+            validate_url(url)
         except Exception as exc:
             print(f"  SKIP row {i + 1}: unsafe/blocked URL '{url}': {exc}", file=sys.stderr, flush=True)
             continue
 
         slug = slugify(title) if title else slugify(url)
         try:
-            out_path = _safe_output_path(RAW_DIR, slug, _RAW_DIR_RESOLVED)
+            out_path = safe_output_path(RAW_DIR, slug, _RAW_DIR_RESOLVED)
         except ValueError as exc:
             print(f"  SKIP row {i + 1}: unsafe output slug generated: {exc}", file=sys.stderr, flush=True)
             continue
@@ -337,7 +340,7 @@ def watch_mode() -> None:
         from watchfiles import Change, watch
     except ImportError:
         print(
-            "[watch] 'watchfiles' not installed — run: uv sync --no-install-project",
+            "[watch] 'watchfiles' not installed — run: uv sync",
             file=sys.stderr,
             flush=True,
         )

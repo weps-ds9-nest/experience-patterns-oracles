@@ -20,6 +20,7 @@ Tools
 """
 
 import json
+import logging
 import os
 import subprocess
 import sys
@@ -28,9 +29,23 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from fastmcp import FastMCP
+from fastmcp import FastMCP, Context
 from starlette.requests import Request
 from starlette.responses import JSONResponse
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# API key for authentication (optional but recommended)
+API_KEY = os.getenv("MCP_API_KEY")
+
+# Module-level graph cache
+_graph_cache: dict[str, Any] | None = None
+_graph_mtime: float = 0.0
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -52,6 +67,18 @@ def _safe_wiki_path(norm_label: str) -> Path | None:
 
 
 # ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+def _check_auth(request: Request) -> bool:
+    """Check if request has valid API key if one is configured."""
+    if not API_KEY:
+        # No API key configured - allow all requests
+        return True
+    provided_key = request.headers.get("X-API-Key")
+    return provided_key == API_KEY
+
+
+# ---------------------------------------------------------------------------
 # Rate limiting (in-memory, simple to prevent abuse)
 # ---------------------------------------------------------------------------
 # Rate limit: 60 requests per minute per IP
@@ -65,10 +92,14 @@ def _check_rate_limit(client_ip: str) -> bool:
     """Check if client IP is within rate limits. Returns True if allowed."""
     # TODO: If scaling to multiple processes/workers, back this rate limiter with a shared store (e.g. Redis).
     now = time.time()
-    timestamps = _request_counts[client_ip]
     
-    # Remove timestamps outside the window
-    _request_counts[client_ip] = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
+    # Prune inactive IPs to prevent memory leaks
+    for ip in list(_request_counts.keys()):
+        active_ts = [t for t in _request_counts[ip] if now - t < RATE_LIMIT_WINDOW]
+        if not active_ts:
+            del _request_counts[ip]
+        else:
+            _request_counts[ip] = active_ts
     
     # Check if under limit
     if len(_request_counts[client_ip]) < RATE_LIMIT_REQUESTS:
@@ -148,7 +179,7 @@ def _compile_basic_graph() -> None:
             "label": title,
             "norm_label": md_file.stem,
             "file_type": "markdown",
-            "source_file": str(md_file)
+            "source_file": str(md_file.resolve().relative_to(_WIKI_DIR_RESOLVED))
         })
     
     # Create basic links between adjacent files
@@ -159,7 +190,11 @@ def _compile_basic_graph() -> None:
             "relation": "adjacency"
         })
     
-    graph = {"nodes": nodes, "links": links}
+    graph = {
+        "graph_type": "basic-adjacency",
+        "nodes": nodes,
+        "links": links
+    }
     GRAPH_FILE.write_text(json.dumps(graph, indent=2), encoding="utf-8")
     print(f"[oracle] Basic graph generated with {len(nodes)} nodes and {len(links)} links.", flush=True)
 
@@ -187,39 +222,18 @@ def _startup_check() -> None:
     else:
         print(f"[oracle] graph.json found at {GRAPH_FILE} — skipping compilation.", flush=True)
 
+    # Check graph quality
+    try:
+        graph = _load_graph()
+        if graph.get("graph_type") == "basic-adjacency":
+            print("[oracle] WARN: Graph uses basic adjacency links only. Run graphify with an LLM backend for semantic relationships.", flush=True)
+    except Exception:
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Graph helpers
 # ---------------------------------------------------------------------------
-
-def _validate_graph(graph: dict) -> dict:
-    """Validate all source_file attributes in graph nodes stay inside WIKI_DIR."""
-    wiki_resolved = WIKI_DIR.resolve()
-    safe_nodes = []
-    for node in _nodes(graph):
-        src = node.get("source_file", "")
-        if src:
-            try:
-                p = Path(src).resolve()
-                if not p.is_relative_to(wiki_resolved):
-                    print(f"[oracle] WARN: blocked unsafe source_file in graph: {src}", flush=True)
-                    node = {**node, "source_file": ""}
-            except Exception:
-                node = {**node, "source_file": ""}
-        safe_nodes.append(node)
-    graph["nodes"] = safe_nodes
-    return graph
-
-
-def _load_graph() -> dict[str, Any]:
-    if not GRAPH_FILE.exists():
-        return {}
-    try:
-        graph = json.loads(GRAPH_FILE.read_text(encoding="utf-8"))
-        return _validate_graph(graph)
-    except Exception:
-        return {}
-
 
 def _nodes(graph: dict) -> list[dict]:
     return graph.get("nodes", [])
@@ -271,11 +285,43 @@ def _neighbours(graph: dict, node_id: str) -> list[dict]:
 
 
 def _node_summary(node: dict) -> str:
-    return (
-        f"**{node.get('label', node['id'])}**  "
-        f"(type: {node.get('file_type', '?')}, "
-        f"source: {node.get('source_file', '?')})"
-    )
+    return f"**{node.get('label', node['id'])}** (type: {node.get('file_type', '?')})"
+
+
+def _validate_graph(graph: dict) -> dict:
+    """Validate all source_file attributes in graph nodes stay inside WIKI_DIR."""
+    safe_nodes = []
+    for node in _nodes(graph):
+        src = node.get("source_file", "")
+        if src:
+            try:
+                p = Path(src).resolve()
+                if not p.is_relative_to(_WIKI_DIR_RESOLVED):
+                    p = (WIKI_DIR / src).resolve()
+                if not p.is_relative_to(_WIKI_DIR_RESOLVED):
+                    print(f"[oracle] WARN: blocked unsafe source_file in graph: {src}", flush=True)
+                    node = {**node, "source_file": ""}
+            except Exception:
+                node = {**node, "source_file": ""}
+        safe_nodes.append(node)
+    graph["nodes"] = safe_nodes
+    return graph
+
+
+def _load_graph() -> dict[str, Any]:
+    global _graph_cache, _graph_mtime
+    if not GRAPH_FILE.exists():
+        return {}
+    try:
+        mtime = GRAPH_FILE.stat().st_mtime
+        if _graph_cache is not None and mtime == _graph_mtime:
+            return _graph_cache
+        graph = json.loads(GRAPH_FILE.read_text(encoding="utf-8"))
+        _graph_cache = _validate_graph(graph)
+        _graph_mtime = mtime
+        return _graph_cache
+    except Exception:
+        return {}
 
 
 # ---------------------------------------------------------------------------
@@ -285,26 +331,12 @@ def _node_summary(node: dict) -> str:
 mcp = FastMCP("UX_Pattern_Oracle")
 
 
-from fastmcp import Context
-
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
-    # Get client IP for rate limiting
-    client_ip = request.client.host if request.client else "unknown"
-    
-    # Check rate limit (health endpoint is exempt from rate limiting for monitoring)
-    # But we still track it for consistency
-    if not _check_rate_limit(client_ip):
-        return JSONResponse({
-            "status": "error",
-            "message": "Rate limit exceeded",
-        }, status_code=429)
-    
-    graph_ready = GRAPH_FILE.exists()
-    return JSONResponse({
-        "status": "ok",
-        "graph": "ready" if graph_ready else "not_compiled",
-    })
+    if not _check_auth(request):
+        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    logger.info("Health check requested")
+    return JSONResponse({"status": "ok"})
 
 
 @mcp.tool()
@@ -313,16 +345,25 @@ def ask_ux_oracle(query: str, ctx: Context = None) -> str:
     Search the UX pattern knowledge graph for concepts matching the query.
     Returns the most relevant patterns with their graph relationships.
     """
+    # Input validation
+    if len(query) > 1000:
+        return "Query too long. Maximum 1000 characters."
+
     client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    logger.info(f"ask_ux_oracle request from {client_id}: query='{query[:50]}...'")
+
     if not _check_rate_limit(client_id):
+        logger.warning(f"Rate limit exceeded for {client_id}")
         return "Rate limit exceeded. Please wait a moment before making more requests."
-    
+
     graph = _load_graph()
     if not graph:
+        logger.warning("Knowledge graph not available")
         return "Knowledge graph not available. Ensure wiki/ contains .md files and restart the server."
 
     matches = _find_nodes(graph, query, top_k=5)
     if not matches:
+        logger.info(f"No patterns found matching '{query}'")
         return f"No patterns found matching '{query}'. Try broader terms."
 
     lines = [f"## Oracle results for: '{query}'\n"]
@@ -334,6 +375,7 @@ def ask_ux_oracle(query: str, ctx: Context = None) -> str:
             lines.append(f"  → Connected to: {related}")
         lines.append("")
 
+    logger.info(f"ask_ux_oracle completed successfully for {client_id}")
     return "\n".join(lines)
 
 
@@ -343,16 +385,25 @@ def get_pattern_psychology(pattern_name: str, ctx: Context = None) -> str:
     Retrieve the cognitive and psychological underpinnings of a UX pattern.
     Returns the pattern node, its wiki content, and psychologically-related neighbours.
     """
+    # Input validation
+    if len(pattern_name) > 500:
+        return "Pattern name too long. Maximum 500 characters."
+
     client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    logger.info(f"get_pattern_psychology request from {client_id}: pattern='{pattern_name}'")
+
     if not _check_rate_limit(client_id):
+        logger.warning(f"Rate limit exceeded for {client_id}")
         return "Rate limit exceeded. Please wait a moment before making more requests."
-    
+
     graph = _load_graph()
     if not graph:
+        logger.warning("Knowledge graph not available")
         return "Knowledge graph not available."
 
     matches = _find_nodes(graph, pattern_name, top_k=1)
     if not matches:
+        logger.info(f"Pattern '{pattern_name}' not found")
         return f"Pattern '{pattern_name}' not found in the knowledge graph."
 
     node       = matches[0]
@@ -385,6 +436,7 @@ def get_pattern_psychology(pattern_name: str, ctx: Context = None) -> str:
             lines.append(f"- {_node_summary(n)}")
 
     lines.append(wiki_content)
+    logger.info(f"get_pattern_psychology completed successfully for {client_id}")
     return "\n".join(lines)
 
 
@@ -394,16 +446,27 @@ def generate_design_spec(pattern_name: str, target_platform: str, ctx: Context =
     Generate a platform-specific design specification for a UX pattern.
     target_platform examples: 'iOS', 'Android', 'web', 'desktop', 'voice'.
     """
+    # Input validation
+    if len(pattern_name) > 500:
+        return "Pattern name too long. Maximum 500 characters."
+    if len(target_platform) > 100:
+        return "Platform name too long. Maximum 100 characters."
+
     client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    logger.info(f"generate_design_spec request from {client_id}: pattern='{pattern_name}', platform='{target_platform}'")
+
     if not _check_rate_limit(client_id):
+        logger.warning(f"Rate limit exceeded for {client_id}")
         return "Rate limit exceeded. Please wait a moment before making more requests."
-    
+
     graph = _load_graph()
     if not graph:
+        logger.warning("Knowledge graph not available")
         return "Knowledge graph not available."
 
     matches = _find_nodes(graph, pattern_name, top_k=1)
     if not matches:
+        logger.info(f"Pattern '{pattern_name}' not found")
         return f"Pattern '{pattern_name}' not found."
 
     node          = matches[0]
@@ -413,6 +476,7 @@ def generate_design_spec(pattern_name: str, target_platform: str, ctx: Context =
     related_labels = [n.get("label", n["id"]) for n in neighbours[:8]]
     related_str   = "\n".join(f"  - {l}" for l in related_labels) if related_labels else "  (none found)"
 
+    logger.info(f"generate_design_spec completed successfully for {client_id}")
     return f"""## Design Specification — {label} on {platform}
 
 ### Pattern
@@ -444,16 +508,25 @@ def predict_component_states(component_name: str, ctx: Context = None) -> str:
     Predict all possible UI states for a component by traversing the knowledge graph.
     Returns: default, hover, focus, active, disabled, error, loading, empty — where evidenced.
     """
+    # Input validation
+    if len(component_name) > 500:
+        return "Component name too long. Maximum 500 characters."
+
     client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    logger.info(f"predict_component_states request from {client_id}: component='{component_name}'")
+
     if not _check_rate_limit(client_id):
+        logger.warning(f"Rate limit exceeded for {client_id}")
         return "Rate limit exceeded. Please wait a moment before making more requests."
-    
+
     graph = _load_graph()
     if not graph:
+        logger.warning("Knowledge graph not available")
         return "Knowledge graph not available."
 
     matches = _find_nodes(graph, component_name, top_k=1)
     if not matches:
+        logger.info(f"Component '{component_name}' not found")
         return f"Component '{component_name}' not found in the knowledge graph."
 
     node       = matches[0]
@@ -492,6 +565,7 @@ def predict_component_states(component_name: str, ctx: Context = None) -> str:
     for n in neighbours[:10]:
         lines.append(f"  - {n.get('label', n['id'])}")
 
+    logger.info(f"predict_component_states completed successfully for {client_id}")
     return "\n".join(lines)
 
 

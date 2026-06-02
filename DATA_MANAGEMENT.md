@@ -6,7 +6,6 @@ This document explains how data is managed locally.
 
 - **`raw/`** - Contains ingested markdown content from external sources (folder tracked, contents ignored)
 - **`links/`** - Contains URL lists and collection exports (folder tracked, contents ignored)
-- **`wiki/graphify-out/`** - Cache directory (not used by the MCP server)
 
 ## Why Contents Are Ignored
 
@@ -22,11 +21,11 @@ This document explains how data is managed locally.
 1. **Add new URLs** to `links/collections/` (e.g., export bookmarks as CSV)
 2. **Run the ingest script** to fetch content:
    ```bash
-   uv run --no-project python ingest.py
+   uv run python ingest.py
    ```
    Or use watch mode for automatic merging:
    ```bash
-   uv run --no-project python ingest.py --watch
+   uv run python ingest.py --watch
    ```
 3. **Curate content** by promoting files from `raw/` to `wiki/`
 4. **Commit only `wiki/` changes** to git
@@ -36,7 +35,7 @@ This document explains how data is managed locally.
 1. **Ensure `wiki/` has content** - this is the source for the knowledge graph
 2. **Run the server**:
    ```bash
-   uv run --no-project python server.py
+   uv run python server.py
    ```
 3. The server will automatically compile `graphify-out/graph.json` on first run
 4. **Commit `graphify-out/graph.json`** for faster cold starts on deployment
@@ -51,7 +50,6 @@ Only commit these to the public repository:
 Do NOT commit:
 - `raw/` - Ingested content (manage locally)
 - `links/` - URL lists (manage locally)
-- `wiki/graphify-out/` - Cache directory (not used by server)
 
 ## Rebuilding from Scratch
 
@@ -59,9 +57,24 @@ If you need to rebuild the data from scratch:
 
 1. Clone the repository
 2. Add your URL collections to `links/collections/`
-3. Run `uv run --no-project python ingest.py`
+3. Run `uv run python ingest.py`
 4. Curate content from `raw/` to `wiki/`
-5. Run `uv run --no-project python server.py` to compile the graph
+5. Run `uv run python server.py` to compile the graph
+
+## Knowledge Graph Compilation
+
+When the server runs, it requires a compiled knowledge graph at `graphify-out/graph.json` to power the pattern relationship matching.
+
+### LLM Semantic Graph (Recommended)
+To build a semantic knowledge graph that maps meaningful, cognitive relationships between patterns, run `graphify` with an LLM backend:
+- **Ollama**: Ensure Ollama is running locally with the `llama3` model, then run `uv run graphify wiki --no-viz --backend ollama`.
+- **Gemini**: Set your `GEMINI_API_KEY` environment variable, then run `uv run graphify wiki --no-viz`.
+
+### Basic Adjacency Fallback
+If no LLM backend is available, the server compiles a basic fallback graph. This fallback graph:
+- Simply chains patterns together in alphabetical/adjacency order.
+- Lacks semantic relationships and cognitive connections.
+- Is intended only for bootstrapping.
 
 ## Backup Strategy
 

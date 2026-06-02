@@ -23,10 +23,10 @@ jobs:
         run: uv sync --no-install-project
 
       - name: Compile knowledge graph
-        run: uv run --no-project graphify wiki --no-viz
+        run: uv run graphify wiki --no-viz
 
       - name: Commit compiled graph
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@8750aaed8f7a1f3e350f8f0ab66a6fea4f3b442b
         with:
           commit_message: 'chore: auto-compile knowledge graph'
           file_pattern: 'graphify-out/graph.json'

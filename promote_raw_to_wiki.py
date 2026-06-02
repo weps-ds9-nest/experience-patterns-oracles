@@ -8,27 +8,21 @@ to the wiki/ directory by:
 3. Adding wiki-links to related patterns
 
 Usage:
-    uv run --no-project python promote_raw_to_wiki.py
+    uv run python promote_raw_to_wiki.py
 """
 
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
+
+from utils import safe_output_path, slugify
 
 RAW_DIR = Path("raw")
 WIKI_DIR = Path("wiki")
 BATCH_SIZE = 10
 
 _WIKI_DIR_RESOLVED = WIKI_DIR.resolve()
-
-
-def _safe_output_path(directory: Path, slug: str, resolved_base: Path) -> Path:
-    candidate = (directory / f"{slug}.md").resolve()
-    if not candidate.is_relative_to(resolved_base):
-        raise ValueError(f"Slug '{slug}' escapes output directory")
-    return candidate
 
 
 def _is_valid_wiki_output(text: str) -> bool:
@@ -106,12 +100,6 @@ def _clean_boilerplate(content: str) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
-def _slugify(title: str) -> str:
-    """Convert title to slug format."""
-    title = title.lower().strip()
-    title = re.sub(r"[^\w\s-]", "", title)
-    return re.sub(r"[\s_-]+", "-", title).strip("-")
-
 
 def _call_ollama(prompt: str) -> str:
     """Call Ollama to process content."""
@@ -144,7 +132,7 @@ def _process_file(raw_path: Path, wiki_slugs: set[str]) -> tuple[str, str] | Non
     # Extract title from first line or filename
     first_line = cleaned.split("\n")[0].strip()
     title = first_line if first_line and not first_line.startswith("#") else raw_path.stem.replace("-", " ").title()
-    slug = _slugify(title)
+    slug = slugify(title)
 
     # Build prompt for Ollama
     prompt = f"""You are building a UX Pattern wiki entry.
@@ -210,7 +198,7 @@ def main() -> None:
             if result:
                 new_slug, wiki_content = result
                 try:
-                    wiki_path = _safe_output_path(WIKI_DIR, new_slug, _WIKI_DIR_RESOLVED)
+                    wiki_path = safe_output_path(WIKI_DIR, new_slug, _WIKI_DIR_RESOLVED)
                     wiki_path.write_text(wiki_content, encoding="utf-8")
                     wiki_slugs.add(new_slug)
                     print(f"    ✓ Created {wiki_path}", flush=True)
