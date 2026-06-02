@@ -1,15 +1,15 @@
-name: Auto Ingest
+name: Auto Wiki Graph Build
 
 on:
   push:
     branches: [main]
     paths:
-      - 'links/links.csv'
-      - 'links/collections/**'
-      - 'ingest.py'
+      - 'wiki/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
 
 jobs:
-  ingest:
+  build-graph:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,11 +22,12 @@ jobs:
       - name: Install dependencies
         run: uv sync --no-install-project
 
-      - name: Run ingest
-        run: uv run --no-project python ingest.py
+      - name: Compile knowledge graph
+        run: uv run --no-project graphify wiki --no-viz
 
-      - name: Commit fetched markdown
+      - name: Commit compiled graph
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: 'chore: auto-ingest new links [skip ci]'
-          file_pattern: 'raw/**'
+          commit_message: 'chore: auto-compile knowledge graph'
+          file_pattern: 'graphify-out/graph.json'
+

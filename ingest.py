@@ -16,10 +16,12 @@ Usage:
 """
 
 import csv
+import ipaddress
 import re
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 
@@ -31,6 +33,43 @@ JINA_BASE       = "https://r.jina.ai"
 DELAY_SEC       = 2
 
 FIELDNAMES = ["id", "title", "url", "tags", "description"]
+
+_RAW_DIR_RESOLVED = RAW_DIR.resolve()
+
+_BLOCKED_NETWORKS = [
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),   # link-local / cloud metadata
+    ipaddress.ip_network("127.0.0.0/8"),       # loopback
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+]
+
+
+def _validate_url(url: str) -> None:
+    """Raise ValueError if the URL is not a safe external HTTPS URL."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"Blocked non-HTTP scheme: {parsed.scheme!r}")
+    hostname = parsed.hostname or ""
+    try:
+        addr = ipaddress.ip_address(hostname)
+        for net in _BLOCKED_NETWORKS:
+            if addr in net:
+                raise ValueError(f"Blocked private/link-local IP: {addr}")
+    except ValueError as e:
+        if "Blocked" in str(e):
+            raise
+        # Hostname is a domain name, proceed
+
+
+def _safe_output_path(directory: Path, slug: str, resolved_base: Path) -> Path:
+    candidate = (directory / f"{slug}.md").resolve()
+    if not candidate.is_relative_to(resolved_base):
+        raise ValueError(f"Slug '{slug}' escapes output directory")
+    return candidate
+
 
 # Maps source column names (Raindrop or our own) to our FIELDNAMES
 RAINDROP_MAP = {
@@ -175,7 +214,7 @@ def _build_fetch_urls(url: str) -> list[tuple[str, str]]:
     Medium domains get specialized content ingestion services first, then fallback providers.
     All other URLs go to the default content ingestion service.
     """
-    from urllib.parse import urlparse
+    _validate_url(url)
     domain = urlparse(url).netloc.lstrip("www.")
     if any(domain == d or domain.endswith("." + d) for d in MEDIUM_DOMAINS):
         return [
@@ -205,6 +244,7 @@ def fetch_markdown(url: str, session: requests.Session) -> str:
     for fetch_url, provider in _build_fetch_urls(url):
         print(f"  GET [{provider}] {fetch_url}", flush=True)
         try:
+            _validate_url(fetch_url)
             resp = session.get(fetch_url, timeout=30, headers={"Accept": "text/markdown"})
             resp.raise_for_status()
             text = resp.text
@@ -240,6 +280,7 @@ def main() -> None:
     # Step 3 — fetch markdown for each URL not yet scraped
     print(f"[ingest] Processing {len(rows)} link(s) ...", flush=True)
     session = requests.Session()
+    session.verify = True
     session.headers.update({"User-Agent": "experience-patterns-oracle/0.1"})
 
     for i, row in enumerate(rows):
@@ -250,8 +291,18 @@ def main() -> None:
             print(f"  SKIP row {i + 1}: no URL", flush=True)
             continue
 
-        slug     = slugify(title) if title else slugify(url)
-        out_path = RAW_DIR / f"{slug}.md"
+        try:
+            _validate_url(url)
+        except Exception as exc:
+            print(f"  SKIP row {i + 1}: unsafe/blocked URL '{url}': {exc}", file=sys.stderr, flush=True)
+            continue
+
+        slug = slugify(title) if title else slugify(url)
+        try:
+            out_path = _safe_output_path(RAW_DIR, slug, _RAW_DIR_RESOLVED)
+        except ValueError as exc:
+            print(f"  SKIP row {i + 1}: unsafe output slug generated: {exc}", file=sys.stderr, flush=True)
+            continue
 
         if out_path.exists():
             if not _is_bad_content(out_path):

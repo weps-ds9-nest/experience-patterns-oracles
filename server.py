@@ -38,6 +38,19 @@ from starlette.responses import JSONResponse
 WIKI_DIR   = Path("wiki")
 GRAPH_FILE = Path("graphify-out") / "graph.json"
 
+_WIKI_DIR_RESOLVED = WIKI_DIR.resolve()
+
+
+def _safe_wiki_path(norm_label: str) -> Path | None:
+    """Return a resolved wiki path only if it stays inside WIKI_DIR."""
+    if not norm_label:
+        return None
+    candidate = (WIKI_DIR / f"{norm_label.replace(' ', '-')}.md").resolve()
+    if candidate.is_relative_to(_WIKI_DIR_RESOLVED):
+        return candidate
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Rate limiting (in-memory, simple to prevent abuse)
 # ---------------------------------------------------------------------------
@@ -50,6 +63,7 @@ _request_counts: dict[str, list[float]] = defaultdict(list)
 
 def _check_rate_limit(client_ip: str) -> bool:
     """Check if client IP is within rate limits. Returns True if allowed."""
+    # TODO: If scaling to multiple processes/workers, back this rate limiter with a shared store (e.g. Redis).
     now = time.time()
     timestamps = _request_counts[client_ip]
     
@@ -178,10 +192,33 @@ def _startup_check() -> None:
 # Graph helpers
 # ---------------------------------------------------------------------------
 
+def _validate_graph(graph: dict) -> dict:
+    """Validate all source_file attributes in graph nodes stay inside WIKI_DIR."""
+    wiki_resolved = WIKI_DIR.resolve()
+    safe_nodes = []
+    for node in _nodes(graph):
+        src = node.get("source_file", "")
+        if src:
+            try:
+                p = Path(src).resolve()
+                if not p.is_relative_to(wiki_resolved):
+                    print(f"[oracle] WARN: blocked unsafe source_file in graph: {src}", flush=True)
+                    node = {**node, "source_file": ""}
+            except Exception:
+                node = {**node, "source_file": ""}
+        safe_nodes.append(node)
+    graph["nodes"] = safe_nodes
+    return graph
+
+
 def _load_graph() -> dict[str, Any]:
     if not GRAPH_FILE.exists():
         return {}
-    return json.loads(GRAPH_FILE.read_text(encoding="utf-8"))
+    try:
+        graph = json.loads(GRAPH_FILE.read_text(encoding="utf-8"))
+        return _validate_graph(graph)
+    except Exception:
+        return {}
 
 
 def _nodes(graph: dict) -> list[dict]:
@@ -248,6 +285,8 @@ def _node_summary(node: dict) -> str:
 mcp = FastMCP("UX_Pattern_Oracle")
 
 
+from fastmcp import Context
+
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
     # Get client IP for rate limiting
@@ -269,15 +308,13 @@ async def health(request: Request) -> JSONResponse:
 
 
 @mcp.tool()
-def ask_ux_oracle(query: str) -> str:
+def ask_ux_oracle(query: str, ctx: Context = None) -> str:
     """
     Search the UX pattern knowledge graph for concepts matching the query.
     Returns the most relevant patterns with their graph relationships.
     """
-    # Rate limiting check (using a simple identifier since we don't have request context in tools)
-    # For tools, we'll use a simpler approach: track total requests per minute
-    # This is less precise but works without request context
-    if not _check_rate_limit("tool_global"):
+    client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    if not _check_rate_limit(client_id):
         return "Rate limit exceeded. Please wait a moment before making more requests."
     
     graph = _load_graph()
@@ -301,12 +338,13 @@ def ask_ux_oracle(query: str) -> str:
 
 
 @mcp.tool()
-def get_pattern_psychology(pattern_name: str) -> str:
+def get_pattern_psychology(pattern_name: str, ctx: Context = None) -> str:
     """
     Retrieve the cognitive and psychological underpinnings of a UX pattern.
     Returns the pattern node, its wiki content, and psychologically-related neighbours.
     """
-    if not _check_rate_limit("tool_global"):
+    client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    if not _check_rate_limit(client_id):
         return "Rate limit exceeded. Please wait a moment before making more requests."
     
     graph = _load_graph()
@@ -320,12 +358,14 @@ def get_pattern_psychology(pattern_name: str) -> str:
     node       = matches[0]
     neighbours = _neighbours(graph, node["id"])
 
-    # Try to pull wiki content
-    src = node.get("source_file", "")
-    wiki_path = Path(src) if src.startswith("wiki/") else WIKI_DIR / f"{node.get('norm_label', '').replace(' ', '-')}.md"
+    # Safely pull wiki content
+    norm_label = node.get('norm_label', '')
+    wiki_path = _safe_wiki_path(norm_label)
     wiki_content = ""
-    if wiki_path.exists():
-        wiki_content = f"\n\n### Wiki entry\n{wiki_path.read_text(encoding='utf-8')[:1500]}"
+    if wiki_path and wiki_path.exists():
+        # Check size before reading
+        if wiki_path.stat().st_size <= 1_000_000:
+            wiki_content = f"\n\n### Wiki entry\n{wiki_path.read_text(encoding='utf-8')[:1500]}"
 
     psych_keywords = {"cognitive", "mental", "bias", "heuristic", "load", "attention",
                       "memory", "perception", "gestalt", "feedback", "affordance", "principle"}
@@ -349,12 +389,13 @@ def get_pattern_psychology(pattern_name: str) -> str:
 
 
 @mcp.tool()
-def generate_design_spec(pattern_name: str, target_platform: str) -> str:
+def generate_design_spec(pattern_name: str, target_platform: str, ctx: Context = None) -> str:
     """
     Generate a platform-specific design specification for a UX pattern.
     target_platform examples: 'iOS', 'Android', 'web', 'desktop', 'voice'.
     """
-    if not _check_rate_limit("tool_global"):
+    client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    if not _check_rate_limit(client_id):
         return "Rate limit exceeded. Please wait a moment before making more requests."
     
     graph = _load_graph()
@@ -398,12 +439,13 @@ The following concepts are directly connected to this pattern in the knowledge g
 
 
 @mcp.tool()
-def predict_component_states(component_name: str) -> str:
+def predict_component_states(component_name: str, ctx: Context = None) -> str:
     """
     Predict all possible UI states for a component by traversing the knowledge graph.
     Returns: default, hover, focus, active, disabled, error, loading, empty — where evidenced.
     """
-    if not _check_rate_limit("tool_global"):
+    client_id = ctx.client_id if (ctx and ctx.client_id) else "tool_global"
+    if not _check_rate_limit(client_id):
         return "Rate limit exceeded. Please wait a moment before making more requests."
     
     graph = _load_graph()
