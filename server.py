@@ -24,6 +24,8 @@ from pathlib import Path
 from typing import Any
 
 from fastmcp import FastMCP
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -44,21 +46,91 @@ def _compile_graph() -> None:
     print("[oracle] graphify-out/graph.json not found — compiling knowledge graph …", flush=True)
     GRAPH_FILE.parent.mkdir(parents=True, exist_ok=True)
 
+    # Try Ollama backend first (no API key needed), then fall back to default
+    backend_args = ["--backend", "ollama"] if os.getenv("OLLAMA_HOST") or _ollama_available() else []
+    cmd = ["graphify", str(WIKI_DIR), "--no-viz"] + backend_args
+
+    print(f"[oracle] Running: {' '.join(cmd)}", flush=True)
     result = subprocess.run(
-        ["graphify", str(WIKI_DIR), "--no-viz"],
+        cmd,
         capture_output=False,   # stream stdout/stderr directly to cloud logs
         text=True,
     )
 
     if result.returncode != 0:
-        print(f"[oracle] ERROR: graphify exited with code {result.returncode}", file=sys.stderr, flush=True)
-        sys.exit(1)
+        # If Ollama failed and we tried it, retry without backend flag
+        if backend_args:
+            print("[oracle] Ollama backend failed, retrying with default backend...", flush=True)
+            cmd = ["graphify", str(WIKI_DIR), "--no-viz"]
+            result = subprocess.run(
+                cmd,
+                capture_output=False,
+                text=True,
+            )
+
+    if result.returncode != 0:
+        print("[oracle] Graphify failed, falling back to basic graph generator...", flush=True)
+        _compile_basic_graph()
+        return
 
     if not GRAPH_FILE.exists():
         print("[oracle] ERROR: graph.json was not produced — check graphify output above.", file=sys.stderr, flush=True)
         sys.exit(1)
 
     print("[oracle] Knowledge graph compiled successfully.", flush=True)
+
+
+def _compile_basic_graph() -> None:
+    """Generate a basic graph from wiki files without LLM."""
+    print("[oracle] Generating basic graph from wiki files...", flush=True)
+    
+    nodes = []
+    links = []
+    
+    for i, md_file in enumerate(sorted(WIKI_DIR.glob("*.md"))):
+        if md_file.name == ".gitkeep":
+            continue
+            
+        content = md_file.read_text(encoding="utf-8")
+        # Extract title from first heading or filename
+        first_line = content.split("\n")[0].strip()
+        if first_line.startswith("#"):
+            title = first_line.lstrip("#").strip()
+        else:
+            title = md_file.stem.replace("-", " ").title()
+        
+        nodes.append({
+            "id": i,
+            "label": title,
+            "norm_label": md_file.stem,
+            "file_type": "markdown",
+            "source_file": str(md_file)
+        })
+    
+    # Create basic links between adjacent files
+    for i in range(len(nodes) - 1):
+        links.append({
+            "source": nodes[i]["id"],
+            "target": nodes[i+1]["id"],
+            "relation": "adjacency"
+        })
+    
+    graph = {"nodes": nodes, "links": links}
+    GRAPH_FILE.write_text(json.dumps(graph, indent=2), encoding="utf-8")
+    print(f"[oracle] Basic graph generated with {len(nodes)} nodes and {len(links)} links.", flush=True)
+
+
+def _ollama_available() -> bool:
+    """Check if Ollama is available locally."""
+    try:
+        result = subprocess.run(
+            ["ollama", "list"],
+            capture_output=True,
+            timeout=2,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
 
 
 def _startup_check() -> None:
@@ -143,9 +215,16 @@ def _node_summary(node: dict) -> str:
 # MCP server + tools
 # ---------------------------------------------------------------------------
 
-_startup_check()
-
 mcp = FastMCP("UX_Pattern_Oracle")
+
+
+@mcp.custom_route("/health", methods=["GET"])
+async def health(request: Request) -> JSONResponse:
+    graph_ready = GRAPH_FILE.exists()
+    return JSONResponse({
+        "status": "ok",
+        "graph": "ready" if graph_ready else "not_compiled",
+    })
 
 
 @mcp.tool()
@@ -323,6 +402,7 @@ def predict_component_states(component_name: str) -> str:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    _startup_check()
     port = int(os.getenv("PORT", "8000"))
     print(f"[oracle] Starting UX Pattern Oracle on http://0.0.0.0:{port}", flush=True)
     mcp.run(transport="http", host="0.0.0.0", port=port)

@@ -47,12 +47,74 @@ Never delete entries from `links/links.csv` without explicit user confirmation.
 2. uv run --no-project python ingest.py
    ├── merges all CSVs in collections/ into links/links.csv  (deduped by URL)
    ├── fetches markdown for new URLs via r.jina.ai  →  raw/<slug>.md
+   │
+   │  Optional — watch mode (auto-merges on CSV drop, no re-fetching):
+   │  uv run --no-project python ingest.py --watch
+   │
 3. Curate: promote and edit files from raw/ into wiki/
            add [[wiki-links]] to connect related patterns
 4. uv run --no-project python server.py
    └── compiles graphify-out/graph.json on first run, skips on subsequent runs
        serves MCP over HTTP on 0.0.0.0:$PORT
 ```
+
+## Deployment to Render
+
+### Local graph compilation with Ollama
+
+Use Ollama for local development without API keys:
+
+```bash
+# Compile graph with Ollama
+uv run --no-project graphify wiki --no-viz --backend ollama
+
+# Auto-promote raw files to wiki (uses Ollama)
+uv run --no-project python promote_raw_to_wiki.py
+```
+
+The `promote_raw_to_wiki.py` script:
+- Identifies raw/ files not yet in wiki/
+- Uses Ollama to clean, summarize, and add wiki-links
+- Processes in batches of 10 with confirmation
+- Follows the logic from `.github/prompts/build-wiki.prompt.md`
+
+### Deploying to Render
+
+1. Update render.yaml to remove LLM key requirement (already done)
+2. Commit `graphify-out/graph.json` after local compilation (recommended for faster cold starts)
+3. Deploy via Render (auto-detects render.yaml)
+
+The server will try Ollama on Render if available, otherwise skip graph compilation and use committed graph.json.
+
+### Adding a single URL without a Raindrop export
+
+Two ways to add content without going through the CSV workflow:
+
+**Option A — fetch a URL on demand**: Add the row directly to `links/links.csv`
+(columns: `id, title, url, tags, description`), then run `ingest.py` normally.
+It will fetch only the new entry and skip everything already scraped.
+
+**Option B — paste markdown you already have**: Save the file directly as
+`raw/<slug>.md`. `ingest.py` will skip it automatically. Promote it to `wiki/`
+when ready. The slug should be lowercase with hyphens, e.g.
+`raw/progressive-disclosure-pattern.md`.
+
+## Scrape failure monitoring
+
+After **any** `ingest.py` run, scan the terminal output for this pattern:
+consecutive `[provider] failed` or `[provider] returned login wall` lines from
+the **same provider**. If the same provider fails **3 or more times in a row**:
+
+1. Create or append to `logs/provider-failures.md` (create `logs/` if missing)
+2. Add a dated entry with: provider name, failure count, and the affected URLs
+3. Flag whether a replacement bypass service should be investigated
+
+**When to suggest a new methodology**: if the same provider accumulates failures
+across multiple ingest runs without recovery, research a replacement bypass
+service and propose updating `MEDIUM_DOMAINS` or the provider list in
+`_build_fetch_urls()` in `ingest.py`. Current provider chain for Medium domains:
+`freedium.cfd` (first) → `smry.ai` via Jina proxy (second) → plain Jina (fallback).
+Precedent: `smry.ai` added as second-tier fallback on 2026-05-27.
 
 ## MCP tools (server.py)
 

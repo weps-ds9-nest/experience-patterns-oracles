@@ -64,13 +64,22 @@ id,title,url,tags,description
 
 ### 2. Ingest — merge collections and fetch markdown
 
+**One-shot** (merge then fetch in a single run):
 ```bash
 uv run --no-project python ingest.py
 ```
 
-This runs in two steps:
-1. **Merge** — all CSVs in `links/collections/` are merged into `links/links.csv`
-2. **Fetch** — each URL not yet in `raw/` is fetched via `https://r.jina.ai/{url}` with a 2-second polite delay and written to `raw/<slug>.md`
+**Watch mode** (recommended — leave running in the background):
+```bash
+uv run --no-project python ingest.py --watch
+```
+
+In watch mode, the script:
+1. Runs an **immediate startup pass** — any CSVs already in `collections/` that contain new URLs are merged into `links/links.csv` right away
+2. **Watches for changes** — the moment you drop or modify a CSV in `links/collections/`, it detects the change and merges new links automatically
+3. Prints how many new links were added and reminds you to run `ingest.py` (without `--watch`) to fetch the markdown
+
+Each URL is fetched via `https://r.jina.ai/{url}` with a 2-second polite delay and written to `raw/<slug>.md`. No Jina account required.
 
 ### 3. Curate — promote entries to wiki
 
@@ -87,6 +96,31 @@ PORT=9000 uv run --no-project python server.py
 On first run with a populated `wiki/`, Graphifyy compiles `graphify-out/graph.json` automatically. Subsequent starts skip compilation.
 
 The MCP server listens on `http://0.0.0.0:8000` (default).
+
+## Deployment to Render
+
+### Local setup with Ollama
+
+If you have Ollama installed locally, use it for graph compilation without API keys:
+
+```bash
+# Compile knowledge graph with Ollama
+uv run --no-project graphify wiki --no-viz --backend ollama
+
+# Auto-promote raw files to wiki
+uv run --no-project python promote_raw_to_wiki.py
+```
+
+### Deploying
+
+Render automatically detects `render.yaml` in your repository. Connect your repo to Render and it will deploy using the Dockerfile.
+
+### Graph compilation on Render
+
+The server attempts to compile the graph on startup:
+- Tries Ollama backend first (if available in environment)
+- Falls back to other LLM backends if configured
+- For fastest cold starts, commit `graphify-out/graph.json` after local compilation
 
 ## MCP tools
 

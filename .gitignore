@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+
+# Graphify runtime artifacts (keep graph.json and graph.html — commit those)
+graphify-out/manifest.json
+graphify-out/cost.json
+graphify-out/cache/

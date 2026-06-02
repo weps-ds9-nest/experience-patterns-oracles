@@ -10,8 +10,9 @@ supported natively (id, title, note, excerpt, url, folder, tags, created, ...).
 Rows are deduplicated by URL so merging the same export twice is safe.
 
 Usage:
-    python3 ingest.py
-    uv run --no-project python ingest.py
+    python3 ingest.py              # one-shot: merge collections then fetch
+    python3 ingest.py --watch      # daemon: auto-merge on CSV add/modify
+    uv run --no-project python ingest.py --watch
 """
 
 import csv
@@ -126,12 +127,95 @@ def merge_collections() -> int:
     return len(new_rows)
 
 
+# Domains that block Jina Reader — routed through Freedium/12ft instead.
+# Includes Medium's own domain, all known Medium publications, and custom
+# domains that host Medium content (identified by their article hash URL suffix).
+MEDIUM_DOMAINS = {
+    "medium.com",
+    "uxdesign.cc",
+    "uxplanet.org",
+    "bootcamp.uxdesign.cc",
+    "towardsdatascience.com",
+    "betterprogramming.pub",
+    "levelup.gitconnected.com",
+    "medium.muz.li",
+    "blog.appliedinnovationexchange.com",
+    "uxknowledgebase.com",
+    "designsystemscollective.com",
+}
+
+# Content markers that indicate a login wall or anti-scraper intercept page.
+# Size alone is not reliable — some paywall pages are thousands of bytes.
+BAD_SCRAPE_MARKERS = (
+    # Medium login walls
+    "Member-only story",
+    "medium.com/m/signin",
+    "Open in app",
+    "Get unlimited access",
+    "to continue reading",
+    "Sign up to read",
+    # Cloudflare CAPTCHA / challenge pages
+    "Just a moment",
+    # Generic HTTP error pages
+    "Page Not Found",
+)
+
+
+def _is_bad_scrape(path: Path) -> bool:
+    """Return True if the file is too small or contains login-wall markers."""
+    if path.stat().st_size < 800:
+        return True
+    content = path.read_text(encoding="utf-8", errors="ignore")
+    return any(marker in content for marker in BAD_SCRAPE_MARKERS)
+
+
+def _build_fetch_urls(url: str) -> list[tuple[str, str]]:
+    """
+    Return an ordered list of (fetch_url, provider) to try for this URL.
+    Medium domains get Freedium first, then 12ft.io as fallback, then Jina.
+    All other URLs go straight to Jina.
+    """
+    from urllib.parse import urlparse
+    domain = urlparse(url).netloc.lstrip("www.")
+    if any(domain == d or domain.endswith("." + d) for d in MEDIUM_DOMAINS):
+        return [
+            (f"https://freedium.cfd/{url}",          "freedium"),
+            (f"{JINA_BASE}/https://smry.ai/{url}",   "smry.ai"),
+            (f"{JINA_BASE}/{url}",                   "jina"),
+        ]
+    return [(f"{JINA_BASE}/{url}", "jina")]
+
+
+def _content_is_clean(text: str) -> bool:
+    """
+    Return True if the fetched text looks like real article content.
+    Checks both minimum length (short = error/login page) and known bad markers.
+    """
+    if len(text) < 800:
+        return False
+    return not any(marker in text for marker in BAD_SCRAPE_MARKERS)
+
+
 def fetch_markdown(url: str, session: requests.Session) -> str:
-    jina_url = f"{JINA_BASE}/{url}"
-    print(f"  GET {jina_url}", flush=True)
-    resp = session.get(jina_url, timeout=30, headers={"Accept": "text/markdown"})
-    resp.raise_for_status()
-    return resp.text
+    """
+    Try each provider in order until one returns clean content.
+    Raises the last exception if all providers fail.
+    """
+    last_exc: Exception = RuntimeError("No providers configured")
+    for fetch_url, provider in _build_fetch_urls(url):
+        print(f"  GET [{provider}] {fetch_url}", flush=True)
+        try:
+            resp = session.get(fetch_url, timeout=30, headers={"Accept": "text/markdown"})
+            resp.raise_for_status()
+            text = resp.text
+            if _content_is_clean(text):
+                return text
+            print(f"  [{provider}] returned login wall — trying next provider", flush=True)
+            last_exc = ValueError(f"{provider} returned login-wall content")
+        except Exception as exc:
+            print(f"  [{provider}] failed: {exc}", flush=True)
+            last_exc = exc
+    raise last_exc
 
 
 def main() -> None:
@@ -170,8 +254,10 @@ def main() -> None:
         out_path = RAW_DIR / f"{slug}.md"
 
         if out_path.exists():
-            print(f"  SKIP {slug}.md (already exists)", flush=True)
-            continue
+            if not _is_bad_scrape(out_path):
+                print(f"  SKIP {slug}.md ({out_path.stat().st_size} bytes)", flush=True)
+                continue
+            print(f"  RE-FETCH {slug}.md (login wall or bad scrape detected)", flush=True)
 
         try:
             content = fetch_markdown(url, session)
@@ -188,5 +274,61 @@ def main() -> None:
     print("[ingest] Done.", flush=True)
 
 
+def watch_mode() -> None:
+    """
+    Watch links/collections/ for added or modified CSV files and immediately
+    merge any new links into links/links.csv.
+
+    On startup, runs an initial merge pass so any files already in collections/
+    that haven't been processed yet are caught before the watch loop begins.
+    """
+    try:
+        from watchfiles import Change, watch
+    except ImportError:
+        print(
+            "[watch] 'watchfiles' not installed — run: uv sync --no-install-project",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
+
+    COLLECTIONS_DIR.mkdir(parents=True, exist_ok=True)
+
+    # --- startup pass: catch anything already sitting in collections/ ---
+    print("[watch] Startup: checking collections for unprocessed links …", flush=True)
+    initial = merge_collections()
+    if initial:
+        print(f"[watch] Startup: added {initial} link(s) from existing files.", flush=True)
+    else:
+        print("[watch] Startup: nothing new found.", flush=True)
+
+    print(f"[watch] Watching {COLLECTIONS_DIR} — drop a CSV any time (Ctrl+C to stop)", flush=True)
+
+    for changes in watch(str(COLLECTIONS_DIR)):
+        # Only react to added or modified CSVs, ignore deletes and non-CSV files
+        relevant = {
+            Path(path)
+            for change_type, path in changes
+            if path.endswith(".csv") and change_type in (Change.added, Change.modified)
+        }
+        if not relevant:
+            continue
+
+        for p in sorted(relevant):
+            print(f"[watch] Detected {p.name} ({p.stat().st_size} bytes)", flush=True)
+
+        added = merge_collections()
+        if added:
+            print(f"[watch] + {added} new link(s) written to {LINKS_FILE}", flush=True)
+            print("[watch] Run 'python ingest.py' to fetch markdown for the new links.", flush=True)
+        else:
+            print("[watch] No new links found (all URLs already in links.csv).", flush=True)
+
+        print(f"[watch] Watching {COLLECTIONS_DIR} …", flush=True)
+
+
 if __name__ == "__main__":
-    main()
+    if "--watch" in sys.argv:
+        watch_mode()
+    else:
+        main()

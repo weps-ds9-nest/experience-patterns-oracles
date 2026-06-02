@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: ux-pattern-oracle
+    runtime: docker
+    # Render builds from the Dockerfile in the repo root
+    dockerfilePath: ./Dockerfile
+    # Health check — FastMCP exposes /health via our custom route
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      # Optional: Set OLLAMA_HOST if you want to use Ollama backend on Render
+      # - key: OLLAMA_HOST
+      #   value: http://localhost:11434
+      # Optional: Set LLM API key if you prefer cloud backends over Ollama
+      # Graphify auto-detects from available keys: ANTHROPIC_API_KEY, GEMINI_API_KEY, etc.
+      # - key: ANTHROPIC_API_KEY
+      #   sync: false
