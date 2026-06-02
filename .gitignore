@@ -17,3 +17,13 @@ Thumbs.db
 graphify-out/manifest.json
 graphify-out/cost.json
 graphify-out/cache/
+
+# Personal data and cache (misplaced directory, not used by server)
+wiki/graphify-out/
+
+# Raw ingested content (copyright concerns, prevents bloat)
+raw/
+links/
+
+# Keep only curated wiki content
+!wiki/.gitkeep
