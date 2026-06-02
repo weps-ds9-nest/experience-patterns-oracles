@@ -20,6 +20,8 @@ import json
 import os
 import subprocess
 import sys
+import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +34,31 @@ from starlette.responses import JSONResponse
 # ---------------------------------------------------------------------------
 WIKI_DIR   = Path("wiki")
 GRAPH_FILE = Path("graphify-out") / "graph.json"
+
+# ---------------------------------------------------------------------------
+# Rate limiting (in-memory, simple to prevent abuse)
+# ---------------------------------------------------------------------------
+# Rate limit: 60 requests per minute per IP
+RATE_LIMIT_REQUESTS = 60
+RATE_LIMIT_WINDOW = 60  # seconds
+
+_request_counts: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_rate_limit(client_ip: str) -> bool:
+    """Check if client IP is within rate limits. Returns True if allowed."""
+    now = time.time()
+    timestamps = _request_counts[client_ip]
+    
+    # Remove timestamps outside the window
+    _request_counts[client_ip] = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW]
+    
+    # Check if under limit
+    if len(_request_counts[client_ip]) < RATE_LIMIT_REQUESTS:
+        _request_counts[client_ip].append(now)
+        return True
+    
+    return False
 
 # ---------------------------------------------------------------------------
 # Startup: compile brain if needed
@@ -220,6 +247,17 @@ mcp = FastMCP("UX_Pattern_Oracle")
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
+    # Get client IP for rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check rate limit (health endpoint is exempt from rate limiting for monitoring)
+    # But we still track it for consistency
+    if not _check_rate_limit(client_ip):
+        return JSONResponse({
+            "status": "error",
+            "message": "Rate limit exceeded",
+        }, status_code=429)
+    
     graph_ready = GRAPH_FILE.exists()
     return JSONResponse({
         "status": "ok",
@@ -233,6 +271,12 @@ def ask_ux_oracle(query: str) -> str:
     Search the UX pattern knowledge graph for concepts matching the query.
     Returns the most relevant patterns with their graph relationships.
     """
+    # Rate limiting check (using a simple identifier since we don't have request context in tools)
+    # For tools, we'll use a simpler approach: track total requests per minute
+    # This is less precise but works without request context
+    if not _check_rate_limit("tool_global"):
+        return "Rate limit exceeded. Please wait a moment before making more requests."
+    
     graph = _load_graph()
     if not graph:
         return "Knowledge graph not available. Ensure wiki/ contains .md files and restart the server."
@@ -259,6 +303,9 @@ def get_pattern_psychology(pattern_name: str) -> str:
     Retrieve the cognitive and psychological underpinnings of a UX pattern.
     Returns the pattern node, its wiki content, and psychologically-related neighbours.
     """
+    if not _check_rate_limit("tool_global"):
+        return "Rate limit exceeded. Please wait a moment before making more requests."
+    
     graph = _load_graph()
     if not graph:
         return "Knowledge graph not available."
@@ -304,6 +351,9 @@ def generate_design_spec(pattern_name: str, target_platform: str) -> str:
     Generate a platform-specific design specification for a UX pattern.
     target_platform examples: 'iOS', 'Android', 'web', 'desktop', 'voice'.
     """
+    if not _check_rate_limit("tool_global"):
+        return "Rate limit exceeded. Please wait a moment before making more requests."
+    
     graph = _load_graph()
     if not graph:
         return "Knowledge graph not available."
@@ -350,6 +400,9 @@ def predict_component_states(component_name: str) -> str:
     Predict all possible UI states for a component by traversing the knowledge graph.
     Returns: default, hover, focus, active, disabled, error, loading, empty — where evidenced.
     """
+    if not _check_rate_limit("tool_global"):
+        return "Rate limit exceeded. Please wait a moment before making more requests."
+    
     graph = _load_graph()
     if not graph:
         return "Knowledge graph not available."

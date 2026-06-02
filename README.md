@@ -81,6 +81,14 @@ In watch mode, the script:
 
 Each URL is fetched via `https://r.jina.ai/{url}` with a 2-second polite delay and written to `raw/<slug>.md`. No Jina account required.
 
+**Content fetching fallback providers:**
+For Medium domains (medium.com, uxplanet.org, etc.), the system uses a fallback chain:
+1. freedium.cfd (first attempt)
+2. smry.ai via Jina proxy (second attempt)
+3. Plain Jina (final fallback)
+
+This ensures content can be retrieved even if one provider is blocked or fails. See `.github/copilot-instructions.md` for detailed scrape failure monitoring.
+
 ### 3. Curate — promote entries to wiki
 
 Copy and edit files from `raw/` into `wiki/`. Add `[[wiki-links]]` to connect related patterns.
