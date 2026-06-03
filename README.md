@@ -45,6 +45,8 @@ Requires Python ≥ 3.12 and [uv](https://docs.astral.sh/uv/).
 uv sync
 ```
 
+**IMPORTANT:** This is a NON RAG-FIRST MCP. The default graph compilation works without any LLM or API keys. LLM usage is opt-in only.
+
 ## Usage
 
 ### 1. Add links — Bookmark collections workflow
@@ -133,19 +135,46 @@ uv run python server.py
 PORT=9000 uv run python server.py
 ```
 
-On first run with a populated `wiki/`, Graphifyy compiles `graphify-out/graph.json` automatically. Subsequent starts skip compilation.
+On first run with a populated `wiki/`, the server compiles `graphify-out/graph.json` automatically using basic graph generation (no LLM required). Subsequent starts skip compilation.
 
 The MCP server listens on `http://0.0.0.0:8000` (default).
 
-## Deployment to Render
+## Optional: LLM Backend for Semantic Graphs
 
-### Local setup with Ollama
-
-If you have Ollama installed locally, use it for graph compilation and content promotion without API keys:
+For enhanced semantic relationships in the knowledge graph, you can opt-in to LLM-based extraction:
 
 ```bash
+# Install optional LLM dependencies
+uv sync --group dev
+
+# Set in .env:
+GRAPHIFY_USE_LLM=true
+GRAPHIFY_BACKEND=ollama
+GRAPHIFY_MODEL=llama3:latest
+
+# Then start the server
+uv run python server.py
+```
+
+**Note:** LLM backend is optional. The default basic graph generation works without any LLM or API keys.
+
+## Deployment to Render
+
+### Local development with LLM (optional)
+
+For local development with enhanced semantic graphs, you can opt-in to Ollama:
+
+```bash
+# Install optional LLM dependencies
+uv sync --group dev
+
+# Set in .env:
+GRAPHIFY_USE_LLM=true
+GRAPHIFY_BACKEND=ollama
+GRAPHIFY_MODEL=llama3:latest
+
 # Compile knowledge graph with Ollama
-uv run graphify wiki --no-viz --backend ollama
+uv run graphify wiki --no-viz --backend ollama --model llama3:latest
 
 # Auto-promote raw files to wiki (with verbose logging)
 uv run python promote_raw_to_wiki.py --verbose
@@ -154,16 +183,15 @@ uv run python promote_raw_to_wiki.py --verbose
 uv run python update_wikilinks.py
 ```
 
+**Note:** LLM backend is optional. The default basic graph generation works without any LLM or API keys.
+
 ### Deploying
 
 Render automatically detects `render.yaml` in your repository. Connect your repo to Render and it will deploy using the Dockerfile.
 
 ### Graph compilation on Render
 
-The server attempts to compile the graph on startup:
-- Tries Ollama backend first (if available in environment)
-- Falls back to other LLM backends if configured
-- For fastest cold starts, commit `graphify-out/graph.json` after local compilation
+The server compiles the graph on startup using basic graph generation (no LLM required). For fastest cold starts, commit `graphify-out/graph.json` after local compilation.
 
 ## Access & Usage
 

@@ -1,410 +1,565 @@
 {
+  "graph_type": "basic-adjacency",
   "nodes": [
     {
       "id": 0,
-      "label": "10 Rules for Better Dashboard Design: Practical Guide",
-      "norm_label": "10-rules-dashboard-design",
+      "label": "10 Grid System Mistakes Killing Your Dashboard Usability",
+      "norm_label": "10-grid-system-mistakes-killing-your-dashboard-usability",
       "file_type": "markdown",
-      "source_file": "wiki/10-rules-dashboard-design.md"
+      "source_file": "10-grid-system-mistakes-killing-your-dashboard-usability.md"
     },
     {
       "id": 1,
-      "label": "Dashboard Design Questionnaire: 15 Questions at Three Phases",
-      "norm_label": "15-questions-dashboard-design",
+      "label": "10 Rules for Better Dashboard Design: Practical Guide",
+      "norm_label": "10-rules-dashboard-design",
       "file_type": "markdown",
-      "source_file": "wiki/15-questions-dashboard-design.md"
+      "source_file": "10-rules-dashboard-design.md"
     },
     {
       "id": 2,
-      "label": "20 Dashboard UI/UX Design Principles for 2025",
-      "norm_label": "20-dashboard-ui-ux-principles",
+      "label": "10 Rules For Better Dashboard Design",
+      "norm_label": "10-rules-for-better-dashboard-design",
       "file_type": "markdown",
-      "source_file": "wiki/20-dashboard-ui-ux-principles.md"
+      "source_file": "10-rules-for-better-dashboard-design.md"
     },
     {
       "id": 3,
-      "label": "26 Steps of Product Dashboard Design: Complete Process Guide",
-      "norm_label": "26-dashboard-design-process",
+      "label": "10 Rules Of Dashboard Design",
+      "norm_label": "10-rules-of-dashboard-design",
       "file_type": "markdown",
-      "source_file": "wiki/26-dashboard-design-process.md"
+      "source_file": "10-rules-of-dashboard-design.md"
     },
     {
       "id": 4,
-      "label": "30 User Research Questions for Dashboard Design",
-      "norm_label": "30-dashboard-research-questions",
+      "label": "Dashboard Design Questionnaire: 15 Questions at Three Phases",
+      "norm_label": "15-questions-dashboard-design",
       "file_type": "markdown",
-      "source_file": "wiki/30-dashboard-research-questions.md"
+      "source_file": "15-questions-dashboard-design.md"
     },
     {
       "id": 5,
-      "label": "37 AI Patterns for Product Teams: Future-Proof Products",
-      "norm_label": "37-ai-patterns-product-teams",
+      "label": "20 Best Dashboard Uiux Design Principles You Need In 2025",
+      "norm_label": "20-best-dashboard-uiux-design-principles-you-need-in-2025",
       "file_type": "markdown",
-      "source_file": "wiki/37-ai-patterns-product-teams.md"
+      "source_file": "20-best-dashboard-uiux-design-principles-you-need-in-2025.md"
     },
     {
       "id": 6,
-      "label": "Accessible Drag-and-Drop Examples & Patterns",
-      "norm_label": "accessible-dnd-salesforce",
+      "label": "20 Dashboard UI/UX Design Principles for 2025",
+      "norm_label": "20-dashboard-ui-ux-principles",
       "file_type": "markdown",
-      "source_file": "wiki/accessible-dnd-salesforce.md"
+      "source_file": "20-dashboard-ui-ux-principles.md"
     },
     {
       "id": 7,
-      "label": "4 Major Patterns for Accessible Drag-and-Drop",
-      "norm_label": "accessible-drag-and-drop",
+      "label": "20 Genai Ux Patterns Examples And Implementation Tactics",
+      "norm_label": "20-genai-ux-patterns-examples-and-implementation-tactics",
       "file_type": "markdown",
-      "source_file": "wiki/accessible-drag-and-drop.md"
+      "source_file": "20-genai-ux-patterns-examples-and-implementation-tactics.md"
     },
     {
       "id": 8,
-      "label": "We Need UX Patterns for AI Behaviour, Not Just UI Components",
-      "norm_label": "ai-behaviour-ux-patterns",
+      "label": "26 Steps of Product Dashboard Design: Complete Process Guide",
+      "norm_label": "26-dashboard-design-process",
       "file_type": "markdown",
-      "source_file": "wiki/ai-behaviour-ux-patterns.md"
+      "source_file": "26-dashboard-design-process.md"
     },
     {
       "id": 9,
-      "label": "AI-Driven UX Patterns That Will Dominate by 2026",
-      "norm_label": "ai-driven-ux-patterns-by-2026",
+      "label": "3 New Patterns For Trustworthy Ai Customer Support",
+      "norm_label": "3-new-patterns-for-trustworthy-ai-customer-support",
       "file_type": "markdown",
-      "source_file": "wiki/ai-driven-ux-patterns-by-2026.md"
+      "source_file": "3-new-patterns-for-trustworthy-ai-customer-support.md"
     },
     {
       "id": 10,
-      "label": "7 Design Paradigms for Human-AI Interfaces",
-      "norm_label": "ai-paradigms-human-interfaces",
+      "label": "30 User Research Questions for Dashboard Design",
+      "norm_label": "30-dashboard-research-questions",
       "file_type": "markdown",
-      "source_file": "wiki/ai-paradigms-human-interfaces.md"
+      "source_file": "30-dashboard-research-questions.md"
     },
     {
       "id": 11,
-      "label": "37 AI Patterns for Product Teams: Building Future-Proof AI Products",
-      "norm_label": "ai-patterns-product-teams",
+      "label": "37 Ai Patterns For Product Teams",
+      "norm_label": "37-ai-patterns-for-product-teams",
       "file_type": "markdown",
-      "source_file": "wiki/ai-patterns-product-teams.md"
+      "source_file": "37-ai-patterns-for-product-teams.md"
     },
     {
       "id": 12,
-      "label": "5 Boring UI Patterns That Make AI Results Way Better",
-      "norm_label": "ai-prompt-patterns",
+      "label": "37 AI Patterns for Product Teams: Future-Proof Products",
+      "norm_label": "37-ai-patterns-product-teams",
       "file_type": "markdown",
-      "source_file": "wiki/ai-prompt-patterns.md"
+      "source_file": "37-ai-patterns-product-teams.md"
     },
     {
       "id": 13,
-      "label": "AI's Text Trap: Moving Towards a More Interactive Future",
-      "norm_label": "ai-text-trap-interactive-future",
+      "label": "4 Major Patterns For Accessible Drag And Drop",
+      "norm_label": "4-major-patterns-for-accessible-drag-and-drop",
       "file_type": "markdown",
-      "source_file": "wiki/ai-text-trap-interactive-future.md"
+      "source_file": "4-major-patterns-for-accessible-drag-and-drop.md"
     },
     {
       "id": 14,
-      "label": "Where Should AI Sit in Your UI: 7 Emerging Layout Patterns",
-      "norm_label": "ai-ui-layout-patterns",
+      "label": "4 Ux Patterns I Fixed At 50 B2B Saas Companies You Can Too",
+      "norm_label": "4-ux-patterns-i-fixed-at-50-b2b-saas-companies-you-can-too",
       "file_type": "markdown",
-      "source_file": "wiki/ai-ui-layout-patterns.md"
+      "source_file": "4-ux-patterns-i-fixed-at-50-b2b-saas-companies-you-can-too.md"
     },
     {
       "id": 15,
-      "label": "AI UX Patterns in 2026: From Assistants to Decisions",
-      "norm_label": "ai-ux-patterns-2026",
+      "label": "5 Boring Ui Patterns That Make Ai Results Way Better By Nurkhon Medium",
+      "norm_label": "5-boring-ui-patterns-that-make-ai-results-way-better-by-nurkhon-medium",
       "file_type": "markdown",
-      "source_file": "wiki/ai-ux-patterns-2026.md"
+      "source_file": "5-boring-ui-patterns-that-make-ai-results-way-better-by-nurkhon-medium.md"
     },
     {
       "id": 16,
-      "label": "Badge and Tag UI Design",
-      "norm_label": "badge-tag-ui-design",
+      "label": "5 Enterprise Ux Patterns That Increase Flexibility Pencil Paper",
+      "norm_label": "5-enterprise-ux-patterns-that-increase-flexibility-pencil-paper",
       "file_type": "markdown",
-      "source_file": "wiki/badge-tag-ui-design.md"
+      "source_file": "5-enterprise-ux-patterns-that-increase-flexibility-pencil-paper.md"
     },
     {
       "id": 17,
-      "label": "Banking App UX: Top 10 Best Practices",
-      "norm_label": "banking-app-ux-best-practices",
+      "label": "6 Step Guide To Master Dashboard Ux Design",
+      "norm_label": "6-step-guide-to-master-dashboard-ux-design",
       "file_type": "markdown",
-      "source_file": "wiki/banking-app-ux-best-practices.md"
+      "source_file": "6-step-guide-to-master-dashboard-ux-design.md"
     },
     {
       "id": 18,
-      "label": "Beautiful Interactions: Crafting Elegant Drag-and-Drop Animations",
-      "norm_label": "beautiful-drag-drop-interactions",
+      "label": "Accessible Drag-and-Drop Examples & Patterns",
+      "norm_label": "accessible-dnd-salesforce",
       "file_type": "markdown",
-      "source_file": "wiki/beautiful-drag-drop-interactions.md"
+      "source_file": "accessible-dnd-salesforce.md"
     },
     {
       "id": 19,
-      "label": "Beyond Chat: 8 Core User Intents Driving AI Interaction",
-      "norm_label": "beyond-chat-user-intents",
+      "label": "4 Major Patterns for Accessible Drag-and-Drop",
+      "norm_label": "accessible-drag-and-drop",
       "file_type": "markdown",
-      "source_file": "wiki/beyond-chat-user-intents.md"
+      "source_file": "accessible-drag-and-drop.md"
     },
     {
       "id": 20,
-      "label": "Beyond Chatbots: 5 Emerging AI UX Patterns for 2025",
-      "norm_label": "beyond-chatbots-emerging-patterns",
+      "label": "We Need UX Patterns for AI Behaviour, Not Just UI Components",
+      "norm_label": "ai-behaviour-ux-patterns",
       "file_type": "markdown",
-      "source_file": "wiki/beyond-chatbots-emerging-patterns.md"
+      "source_file": "ai-behaviour-ux-patterns.md"
     },
     {
       "id": 21,
-      "label": "Dashboard Design: 15 Critical Questions Framework",
-      "norm_label": "dashboard-15-questions-framework",
+      "label": "AI-Driven UX Patterns That Will Dominate by 2026",
+      "norm_label": "ai-driven-ux-patterns-by-2026",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-15-questions-framework.md"
+      "source_file": "ai-driven-ux-patterns-by-2026.md"
     },
     {
       "id": 22,
-      "label": "Dashboard UI/UX Design: 20 Principles for 2025",
-      "norm_label": "dashboard-20-principles-2025",
+      "label": "7 Design Paradigms for Human-AI Interfaces",
+      "norm_label": "ai-paradigms-human-interfaces",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-20-principles-2025.md"
+      "source_file": "ai-paradigms-human-interfaces.md"
     },
     {
       "id": 23,
-      "label": "7 Tips to Design Effective Dashboards (Adobe XD)",
-      "norm_label": "dashboard-adobe-xd-tips",
+      "label": "37 AI Patterns for Product Teams: Building Future-Proof AI Products",
+      "norm_label": "ai-patterns-product-teams",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-adobe-xd-tips.md"
+      "source_file": "ai-patterns-product-teams.md"
     },
     {
       "id": 24,
-      "label": "9 Best Practices When Designing a Dashboard",
-      "norm_label": "dashboard-best-practices",
+      "label": "5 Boring UI Patterns That Make AI Results Way Better",
+      "norm_label": "ai-prompt-patterns",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-best-practices.md"
+      "source_file": "ai-prompt-patterns.md"
     },
     {
       "id": 25,
-      "label": "Dashboard Design Process: 26 Steps Framework",
-      "norm_label": "dashboard-design-26-steps",
+      "label": "AI's Text Trap: Moving Towards a More Interactive Future",
+      "norm_label": "ai-text-trap-interactive-future",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-26-steps.md"
+      "source_file": "ai-text-trap-interactive-future.md"
     },
     {
       "id": 26,
-      "label": "Dashboard Design Best Practices and Rules",
-      "norm_label": "dashboard-design-best-practices",
+      "label": "Where Should AI Sit in Your UI: 7 Emerging Layout Patterns",
+      "norm_label": "ai-ui-layout-patterns",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-best-practices.md"
+      "source_file": "ai-ui-layout-patterns.md"
     },
     {
       "id": 27,
-      "label": "Best Principle for Designing a Dashboard",
-      "norm_label": "dashboard-design-best-principle",
+      "label": "AI UX Patterns in 2026: From Assistants to Decisions",
+      "norm_label": "ai-ux-patterns-2026",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-best-principle.md"
+      "source_file": "ai-ux-patterns-2026.md"
     },
     {
       "id": 28,
-      "label": "Dashboard Design Fundamentals: Clear, Meaningful, Consistent, Simple",
-      "norm_label": "dashboard-design-fundamentals",
+      "label": "An illustration showing a woman pointing at a dashboard with graphs",
+      "norm_label": "an-illustration-showing-a-woman-pointing-at-a-dashboard-with-graphs",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-fundamentals.md"
+      "source_file": "an-illustration-showing-a-woman-pointing-at-a-dashboard-with-graphs.md"
     },
     {
       "id": 29,
-      "label": "10 Rules for Better Dashboard Design",
-      "norm_label": "dashboard-design-principles-uxplanet",
+      "label": "The Importance of Dashboard Design in Today's Data-Driven World",
+      "norm_label": "as-data-becomes-the-new-fuel-almost-every-business-becomes-significantly-dependent-on-a-dashboard-dashboards-are-used-across-industries-to-provide-a-real-time-representation-of-data-in-a-summarized-format-leading-to-an-easier-comprehension",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-principles-uxplanet.md"
+      "source_file": "as-data-becomes-the-new-fuel-almost-every-business-becomes-significantly-dependent-on-a-dashboard-dashboards-are-used-across-industries-to-provide-a-real-time-representation-of-data-in-a-summarized-format-leading-to-an-easier-comprehension.md"
     },
     {
       "id": 30,
-      "label": "26 Steps of Product Dashboard Design: From Pre-Process to Testing",
-      "norm_label": "dashboard-design-process",
+      "label": "Badge and Tag UI Design",
+      "norm_label": "badge-tag-ui-design",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-process.md"
+      "source_file": "badge-tag-ui-design.md"
     },
     {
       "id": 31,
-      "label": "15 Questions for Designing Effective Dashboards",
-      "norm_label": "dashboard-design-questions",
+      "label": "Banking App UX: Top 10 Best Practices",
+      "norm_label": "banking-app-ux-best-practices",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-questions.md"
+      "source_file": "banking-app-ux-best-practices.md"
     },
     {
       "id": 32,
-      "label": "Dashboard Design: Rules and Principles",
-      "norm_label": "dashboard-design-rules-principles",
+      "label": "Beautiful Interactions: Crafting Elegant Drag-and-Drop Animations",
+      "norm_label": "beautiful-drag-drop-interactions",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-rules-principles.md"
+      "source_file": "beautiful-drag-drop-interactions.md"
     },
     {
       "id": 33,
-      "label": "5 Steps to Effective Dashboard Design",
-      "norm_label": "dashboard-design-steps",
+      "label": "Beyond Chat: 8 Core User Intents Driving AI Interaction",
+      "norm_label": "beyond-chat-user-intents",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-design-steps.md"
+      "source_file": "beyond-chat-user-intents.md"
     },
     {
       "id": 34,
-      "label": "8 Essential Dashboard Design Principles for Data Visualization",
-      "norm_label": "dashboard-essential-principles",
+      "label": "Beyond Chatbots: 5 Emerging AI UX Patterns for 2025",
+      "norm_label": "beyond-chatbots-emerging-patterns",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-essential-principles.md"
+      "source_file": "beyond-chatbots-emerging-patterns.md"
     },
     {
       "id": 35,
-      "label": "6 UX Design Mistakes to Avoid When Designing Dashboards",
-      "norm_label": "dashboard-mistakes-to-avoid",
+      "label": "Dashboard Design: 15 Critical Questions Framework",
+      "norm_label": "dashboard-15-questions-framework",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-mistakes-to-avoid.md"
+      "source_file": "dashboard-15-questions-framework.md"
     },
     {
       "id": 36,
-      "label": "8 Dashboard UI/UX Design Trends for 2023",
-      "norm_label": "dashboard-trends-2023",
+      "label": "Dashboard UI/UX Design: 20 Principles for 2025",
+      "norm_label": "dashboard-20-principles-2025",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-trends-2023.md"
+      "source_file": "dashboard-20-principles-2025.md"
     },
     {
       "id": 37,
-      "label": "20 Dashboard UI/UX Design Principles for 2025",
-      "norm_label": "dashboard-uiux-principles-2025",
+      "label": "7 Tips to Design Effective Dashboards (Adobe XD)",
+      "norm_label": "dashboard-adobe-xd-tips",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-uiux-principles-2025.md"
+      "source_file": "dashboard-adobe-xd-tips.md"
     },
     {
       "id": 38,
-      "label": "A Guide to Designing User-Friendly and Functional Dashboards",
-      "norm_label": "dashboard-user-friendly-functional",
+      "label": "9 Best Practices When Designing a Dashboard",
+      "norm_label": "dashboard-best-practices",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-user-friendly-functional.md"
+      "source_file": "dashboard-best-practices.md"
     },
     {
       "id": 39,
-      "label": "30 User Research Questions for Dashboard Design",
-      "norm_label": "dashboard-user-research-questions",
+      "label": "Dashboard Design Process: 26 Steps Framework",
+      "norm_label": "dashboard-design-26-steps",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-user-research-questions.md"
+      "source_file": "dashboard-design-26-steps.md"
     },
     {
       "id": 40,
-      "label": "6 Important UX Considerations in Dashboard Design",
-      "norm_label": "dashboard-ux-considerations",
+      "label": "Dashboard Design Best Practices and Rules",
+      "norm_label": "dashboard-design-best-practices",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-ux-considerations.md"
+      "source_file": "dashboard-design-best-practices.md"
     },
     {
       "id": 41,
-      "label": "6-Step Guide to Master Dashboard UX Design",
-      "norm_label": "dashboard-ux-mastery",
+      "label": "Best Principle for Designing a Dashboard",
+      "norm_label": "dashboard-design-best-principle",
       "file_type": "markdown",
-      "source_file": "wiki/dashboard-ux-mastery.md"
+      "source_file": "dashboard-design-best-principle.md"
     },
     {
       "id": 42,
-      "label": "Are Data Dashboards Vanity Projects?",
-      "norm_label": "dashboards-vanity-projects",
+      "label": "Dashboard design for Surecave",
+      "norm_label": "dashboard-design-for-surecave",
       "file_type": "markdown",
-      "source_file": "wiki/dashboards-vanity-projects.md"
+      "source_file": "dashboard-design-for-surecave.md"
     },
     {
       "id": 43,
-      "label": "Design Better Badges",
-      "norm_label": "design-better-badges",
+      "label": "Dashboard Design Fundamentals: Clear, Meaningful, Consistent, Simple",
+      "norm_label": "dashboard-design-fundamentals",
       "file_type": "markdown",
-      "source_file": "wiki/design-better-badges.md"
+      "source_file": "dashboard-design-fundamentals.md"
     },
     {
       "id": 44,
-      "label": "Designing Better Dashboards",
-      "norm_label": "designing-better-dashboards",
+      "label": "10 Rules for Better Dashboard Design",
+      "norm_label": "dashboard-design-principles-uxplanet",
       "file_type": "markdown",
-      "source_file": "wiki/designing-better-dashboards.md"
+      "source_file": "dashboard-design-principles-uxplanet.md"
     },
     {
       "id": 45,
-      "label": "Designing for AI Engineers: UI Patterns You Need to Know",
-      "norm_label": "designing-for-ai-engineers",
+      "label": "26 Steps of Product Dashboard Design: From Pre-Process to Testing",
+      "norm_label": "dashboard-design-process",
       "file_type": "markdown",
-      "source_file": "wiki/designing-for-ai-engineers.md"
+      "source_file": "dashboard-design-process.md"
     },
     {
       "id": 46,
-      "label": "Designing in Figma for Doubt: 3 UX Patterns That Build Trust in AI Systems",
-      "norm_label": "designing-for-doubt-trust-ai",
+      "label": "15 Questions for Designing Effective Dashboards",
+      "norm_label": "dashboard-design-questions",
       "file_type": "markdown",
-      "source_file": "wiki/designing-for-doubt-trust-ai.md"
+      "source_file": "dashboard-design-questions.md"
     },
     {
       "id": 47,
-      "label": "The Forgotten Conversation Problem in AI Chat",
-      "norm_label": "forgotten-conversation-problem-ai",
+      "label": "Dashboard Design: Rules and Principles",
+      "norm_label": "dashboard-design-rules-principles",
       "file_type": "markdown",
-      "source_file": "wiki/forgotten-conversation-problem-ai.md"
+      "source_file": "dashboard-design-rules-principles.md"
     },
     {
       "id": 48,
-      "label": "GenAI UX Patterns: 21 Design Patterns for Intelligent Products",
-      "norm_label": "genai-ux-patterns-21-patterns",
+      "label": "5 Steps to Effective Dashboard Design",
+      "norm_label": "dashboard-design-steps",
       "file_type": "markdown",
-      "source_file": "wiki/genai-ux-patterns-21-patterns.md"
+      "source_file": "dashboard-design-steps.md"
     },
     {
       "id": 49,
-      "label": "20+ GenAI UX Patterns: Examples and Implementation Tactics",
-      "norm_label": "genai-ux-patterns-comprehensive",
+      "label": "8 Essential Dashboard Design Principles for Data Visualization",
+      "norm_label": "dashboard-essential-principles",
       "file_type": "markdown",
-      "source_file": "wiki/genai-ux-patterns-comprehensive.md"
+      "source_file": "dashboard-essential-principles.md"
     },
     {
       "id": 50,
-      "label": "21 GenAI UX Patterns: A Shared Language for Building Usable, Intelligent, Safe AI",
-      "norm_label": "genai-ux-patterns",
+      "label": "6 UX Design Mistakes to Avoid When Designing Dashboards",
+      "norm_label": "dashboard-mistakes-to-avoid",
       "file_type": "markdown",
-      "source_file": "wiki/genai-ux-patterns.md"
+      "source_file": "dashboard-mistakes-to-avoid.md"
     },
     {
       "id": 51,
-      "label": "6 UX Guidelines for Video Streaming Platforms",
-      "norm_label": "streaming-ux-guidelines",
+      "label": "8 Dashboard UI/UX Design Trends for 2023",
+      "norm_label": "dashboard-trends-2023",
       "file_type": "markdown",
-      "source_file": "wiki/streaming-ux-guidelines.md"
+      "source_file": "dashboard-trends-2023.md"
     },
     {
       "id": 52,
-      "label": "Trustworthy AI Customer Support: 3 Design Patterns",
-      "norm_label": "trustworthy-ai-customer-support-patterns",
+      "label": "20 Dashboard UI/UX Design Principles for 2025",
+      "norm_label": "dashboard-uiux-principles-2025",
       "file_type": "markdown",
-      "source_file": "wiki/trustworthy-ai-customer-support-patterns.md"
+      "source_file": "dashboard-uiux-principles-2025.md"
     },
     {
       "id": 53,
-      "label": "3 Patterns for Trustworthy AI-Enabled Customer Support",
-      "norm_label": "trustworthy-ai-customer-support",
+      "label": "A Guide to Designing User-Friendly and Functional Dashboards",
+      "norm_label": "dashboard-user-friendly-functional",
       "file_type": "markdown",
-      "source_file": "wiki/trustworthy-ai-customer-support.md"
+      "source_file": "dashboard-user-friendly-functional.md"
     },
     {
       "id": 54,
-      "label": "A Designer's Guide to Design Patterns for Trustworthy AI Products",
-      "norm_label": "trustworthy-ai-design-patterns",
+      "label": "30 User Research Questions for Dashboard Design",
+      "norm_label": "dashboard-user-research-questions",
       "file_type": "markdown",
-      "source_file": "wiki/trustworthy-ai-design-patterns.md"
+      "source_file": "dashboard-user-research-questions.md"
     },
     {
       "id": 55,
-      "label": "The Undo Problem in AI Products",
-      "norm_label": "undo-problem-ai-products",
+      "label": "6 Important UX Considerations in Dashboard Design",
+      "norm_label": "dashboard-ux-considerations",
       "file_type": "markdown",
-      "source_file": "wiki/undo-problem-ai-products.md"
+      "source_file": "dashboard-ux-considerations.md"
     },
     {
       "id": 56,
-      "label": "The UX of AI: Complete Principles Guide",
-      "norm_label": "ux-of-ai-principles",
+      "label": "6-Step Guide to Master Dashboard UX Design",
+      "norm_label": "dashboard-ux-mastery",
       "file_type": "markdown",
-      "source_file": "wiki/ux-of-ai-principles.md"
+      "source_file": "dashboard-ux-mastery.md"
     },
     {
       "id": 57,
+      "label": "Are Data Dashboards Vanity Projects?",
+      "norm_label": "dashboards-vanity-projects",
+      "file_type": "markdown",
+      "source_file": "dashboards-vanity-projects.md"
+    },
+    {
+      "id": 58,
+      "label": "Design Better Badges",
+      "norm_label": "design-better-badges",
+      "file_type": "markdown",
+      "source_file": "design-better-badges.md"
+    },
+    {
+      "id": 59,
+      "label": "Designing Better Dashboards",
+      "norm_label": "designing-better-dashboards",
+      "file_type": "markdown",
+      "source_file": "designing-better-dashboards.md"
+    },
+    {
+      "id": 60,
+      "label": "Designing for AI Engineers: UI Patterns You Need to Know",
+      "norm_label": "designing-for-ai-engineers",
+      "file_type": "markdown",
+      "source_file": "designing-for-ai-engineers.md"
+    },
+    {
+      "id": 61,
+      "label": "Designing in Figma for Doubt: 3 UX Patterns That Build Trust in AI Systems",
+      "norm_label": "designing-for-doubt-trust-ai",
+      "file_type": "markdown",
+      "source_file": "designing-for-doubt-trust-ai.md"
+    },
+    {
+      "id": 62,
+      "label": "The Forgotten Conversation Problem in AI Chat",
+      "norm_label": "forgotten-conversation-problem-ai",
+      "file_type": "markdown",
+      "source_file": "forgotten-conversation-problem-ai.md"
+    },
+    {
+      "id": 63,
+      "label": "GenAI UX Patterns: 21 Design Patterns for Intelligent Products",
+      "norm_label": "genai-ux-patterns-21-patterns",
+      "file_type": "markdown",
+      "source_file": "genai-ux-patterns-21-patterns.md"
+    },
+    {
+      "id": 64,
+      "label": "20+ GenAI UX Patterns: Examples and Implementation Tactics",
+      "norm_label": "genai-ux-patterns-comprehensive",
+      "file_type": "markdown",
+      "source_file": "genai-ux-patterns-comprehensive.md"
+    },
+    {
+      "id": 65,
+      "label": "21 GenAI UX Patterns: A Shared Language for Building Usable, Intelligent, Safe AI",
+      "norm_label": "genai-ux-patterns",
+      "file_type": "markdown",
+      "source_file": "genai-ux-patterns.md"
+    },
+    {
+      "id": 66,
+      "label": "Illustration by Katerina Limpitsouni",
+      "norm_label": "illustration-by-katerina-limpitsouni",
+      "file_type": "markdown",
+      "source_file": "illustration-by-katerina-limpitsouni.md"
+    },
+    {
+      "id": 67,
+      "label": "Illustration by Tracy Dai",
+      "norm_label": "illustration-by-tracy-dai",
+      "file_type": "markdown",
+      "source_file": "illustration-by-tracy-dai.md"
+    },
+    {
+      "id": 68,
+      "label": "Photo by Thibault Penin on Unsplash",
+      "norm_label": "photo-by-thibault-penin-on-unsplash",
+      "file_type": "markdown",
+      "source_file": "photo-by-thibault-penin-on-unsplash.md"
+    },
+    {
+      "id": 69,
+      "label": "Source URL \u2014 https://dribbble.com/shots/24659454-Customer-Journey-CRM-Das",
+      "norm_label": "source-url-httpsdribbblecomshots24659454-customer-journey-crm-dashboard",
+      "file_type": "markdown",
+      "source_file": "source-url-httpsdribbblecomshots24659454-customer-journey-crm-dashboard.md"
+    },
+    {
+      "id": 70,
+      "label": "6 UX Guidelines for Video Streaming Platforms",
+      "norm_label": "streaming-ux-guidelines",
+      "file_type": "markdown",
+      "source_file": "streaming-ux-guidelines.md"
+    },
+    {
+      "id": 71,
+      "label": "This shift has crystallized into seven design paradigms that redefine how AI interfaces should work. They aren\u2019t hypothetical theory. They\u2019re practical tools that designers can implement today.",
+      "norm_label": "this-shift-has-crystallized-into-seven-design-paradigms-that-redefine-how-ai-interfaces-should-work-they-arent-hypothetical-theory-theyre-practical-tools-that-designers-can-implement-today",
+      "file_type": "markdown",
+      "source_file": "this-shift-has-crystallized-into-seven-design-paradigms-that-redefine-how-ai-interfaces-should-work-they-arent-hypothetical-theory-theyre-practical-tools-that-designers-can-implement-today.md"
+    },
+    {
+      "id": 72,
+      "label": "Trustworthy AI Customer Support: 3 Design Patterns",
+      "norm_label": "trustworthy-ai-customer-support-patterns",
+      "file_type": "markdown",
+      "source_file": "trustworthy-ai-customer-support-patterns.md"
+    },
+    {
+      "id": 73,
+      "label": "3 Patterns for Trustworthy AI-Enabled Customer Support",
+      "norm_label": "trustworthy-ai-customer-support",
+      "file_type": "markdown",
+      "source_file": "trustworthy-ai-customer-support.md"
+    },
+    {
+      "id": 74,
+      "label": "A Designer's Guide to Design Patterns for Trustworthy AI Products",
+      "norm_label": "trustworthy-ai-design-patterns",
+      "file_type": "markdown",
+      "source_file": "trustworthy-ai-design-patterns.md"
+    },
+    {
+      "id": 75,
+      "label": "The Undo Problem in AI Products",
+      "norm_label": "undo-problem-ai-products",
+      "file_type": "markdown",
+      "source_file": "undo-problem-ai-products.md"
+    },
+    {
+      "id": 76,
+      "label": "The UX of AI: Complete Principles Guide",
+      "norm_label": "ux-of-ai-principles",
+      "file_type": "markdown",
+      "source_file": "ux-of-ai-principles.md"
+    },
+    {
+      "id": 77,
+      "label": "What I have learned during my 4-year journey of a Product Designer & Dash",
+      "norm_label": "what-i-have-learned-during-my-4-year-journey-of-a-product-designer-dashboard-designer",
+      "file_type": "markdown",
+      "source_file": "what-i-have-learned-during-my-4-year-journey-of-a-product-designer-dashboard-designer.md"
+    },
+    {
+      "id": 78,
       "label": "Why Chatbots Are Not the Future of Interfaces",
       "norm_label": "why-chatbots-not-future",
       "file_type": "markdown",
-      "source_file": "wiki/why-chatbots-not-future.md"
+      "source_file": "why-chatbots-not-future.md"
+    },
+    {
+      "id": 79,
+      "label": "You won\u2019t \u201csee\u201d the biggest shift in app design coming because you\u2019ll feel it.",
+      "norm_label": "you-wont-see-the-biggest-shift-in-app-design-coming-because-youll-feel-it",
+      "file_type": "markdown",
+      "source_file": "you-wont-see-the-biggest-shift-in-app-design-coming-because-youll-feel-it.md"
     }
   ],
   "links": [
@@ -691,6 +846,116 @@
     {
       "source": 56,
       "target": 57,
+      "relation": "adjacency"
+    },
+    {
+      "source": 57,
+      "target": 58,
+      "relation": "adjacency"
+    },
+    {
+      "source": 58,
+      "target": 59,
+      "relation": "adjacency"
+    },
+    {
+      "source": 59,
+      "target": 60,
+      "relation": "adjacency"
+    },
+    {
+      "source": 60,
+      "target": 61,
+      "relation": "adjacency"
+    },
+    {
+      "source": 61,
+      "target": 62,
+      "relation": "adjacency"
+    },
+    {
+      "source": 62,
+      "target": 63,
+      "relation": "adjacency"
+    },
+    {
+      "source": 63,
+      "target": 64,
+      "relation": "adjacency"
+    },
+    {
+      "source": 64,
+      "target": 65,
+      "relation": "adjacency"
+    },
+    {
+      "source": 65,
+      "target": 66,
+      "relation": "adjacency"
+    },
+    {
+      "source": 66,
+      "target": 67,
+      "relation": "adjacency"
+    },
+    {
+      "source": 67,
+      "target": 68,
+      "relation": "adjacency"
+    },
+    {
+      "source": 68,
+      "target": 69,
+      "relation": "adjacency"
+    },
+    {
+      "source": 69,
+      "target": 70,
+      "relation": "adjacency"
+    },
+    {
+      "source": 70,
+      "target": 71,
+      "relation": "adjacency"
+    },
+    {
+      "source": 71,
+      "target": 72,
+      "relation": "adjacency"
+    },
+    {
+      "source": 72,
+      "target": 73,
+      "relation": "adjacency"
+    },
+    {
+      "source": 73,
+      "target": 74,
+      "relation": "adjacency"
+    },
+    {
+      "source": 74,
+      "target": 75,
+      "relation": "adjacency"
+    },
+    {
+      "source": 75,
+      "target": 76,
+      "relation": "adjacency"
+    },
+    {
+      "source": 76,
+      "target": 77,
+      "relation": "adjacency"
+    },
+    {
+      "source": 77,
+      "target": 78,
+      "relation": "adjacency"
+    },
+    {
+      "source": 78,
+      "target": 79,
       "relation": "adjacency"
     }
   ]

@@ -1,31 +1,29 @@
 # What I have learned during my 4-year journey of a Product Designer & Dash
 Dashboard Designer
 
-As a product designer and dashboard designer, I've learned that effective d
-design requires collaboration, clear goals, and a user-centered approach. O
-Over the past four years, I've refined my process to ensure that designs ar
-are not only visually appealing but also functional and efficient.
+As a Product Designer and Dashboard Designer, I've learned that effective d
+design requires collaboration, research, and attention to detail. By follow
+following a structured process, designers can create user-centered products
+products that meet the needs of both users and stakeholders.
 
 ## Key Patterns
-* Pre-process: Gather information, learn about personas, and set up project
-project folders
-* Going Low Fidelity: Whiteboard, map out screens, and write down user inpu
-inputs
-* Work / Design: Create moodboards, first drafts, and validate designs with
-with users
-* Assets & Delivery: Write specifications, create diagrams, and finalize pr
-prototypes
-* Final & Test: Inspectlet, HotJar, Mixpanel, Google Analytics, and Interco
-Intercom
-* After Design: Set goals, track progress, and maintain a workspace
+- Pre-process: Gather information, ask for examples, and learn about person
+personas.
+- Going Low Fidelity: Use whiteboards, maps, and moodboards to explore desi
+design options.
+- Work/Design: Iterate on designs, involve teams, and focus on user goals.
+- Assets & Delivery: Document specifications, create styleguides, and test 
+designs.
+- Final & Test: Inspect user behavior, track clicks, and refine designs.
+- After Design: Set goals, prioritize tasks, and maintain a work-life balan
+balance.
 
 ## Content
 
-<original text remains here>
+[Kept the original text here]
 
 ## Related
 [[10-grid-system-mistakes-killing-your-dashboard-usability]]
+[[20-best-dashboard-uiux-design-principles-you-need-in-2025]]
 [[26-dashboard-design-process]]
-[[37-ai-patterns-for-product-teams]]
 [[4-major-patterns-for-accessible-drag-and-drop]]
-[add more relevant links if necessary]

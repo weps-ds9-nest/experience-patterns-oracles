@@ -1,19 +1,20 @@
 # Illustration by Katerina Limpitsouni
 
-Deciding the relevant information to display in a dashboard can be tricky. 
-Understanding users' goals, context of use, timeliness and interactivity re
-requirements, and familiarity with data, metrics, and industry terminologie
-terminologies is crucial for designing an effective dashboard.
+Deciding what information to display in a dashboard can be tricky. It's not
+not enough to ask users what they want; you must understand why the data is
+is needed and how it will be used. To create an effective dashboard, you ne
+need to consider four key areas: user goals, context of use, timeliness and
+and interactivity requirements, and familiarity with data, metrics, and ind
+industry terminologies.
 
 ## Key Patterns
-- User's goals determine how data should be visualized and what capabilitie
-capabilities are needed.
-- Context of use helps prioritize data points and design for quick glance o
-or deep analysis.
-- Timeliness and interactivity requirements separate data that require real
-real-time vs. periodic updates.
-- Familiarity with data, metrics, and industry terminologies ensures users 
-can easily understand the dashboard.
+
+* User's goals: Understand what users are trying to achieve
+* Context of use: Prioritize data points based on the situation
+* Timeliness and interactivity requirements: Separate real-time from period
+periodic updates
+* Familiarity with data, metrics, and industry terminologies: Understand us
+user proficiency with data
 
 ## Content
 
@@ -32,10 +33,10 @@ Below, I’m sharing a collection of questions I use in user research for das
 dashboard design projects. These questions are designed to uncover four are
 areas:
 
-1. User’s goals
-2. Context of use
-3. Timeliness and interactivity requirements
-4. Familiarity with data, metrics, and industry terminologies
+1.   User’s goals
+2.   Context of use
+3.   Timeliness and interactivity requirements
+4.   Familiarity with data, metrics, and industry terminologies
 
 You can use these questions during contextual inquiries, user interviews, o
 or in surveys to uncover user’s real needs.
@@ -98,6 +99,15 @@ data?
 
 Context of use helps you prioritize among various data points that could be
 be displayed.
+
+## Get Taylor Nguyen’s stories in your inbox
+
+Join Medium for free to get updates from this writer.
+
+What’s the most common scenario where users would use a dashboard? Designin
+Designing for a quick glance is very different from designing for deep anal
+analysis. Without understanding the context of use, the dashboard informati
+information will not lead to any meaningful outcome.
 
 ### General context
 
@@ -211,4 +221,7 @@ list? What other user research questions do you use in dashboard design? Le
 Let me know in the comment section.
 
 ## Related
-[[10-grid-system-mistakes-killing-your-dashboard-usability]]
+
+* [[10-rules-for-better-dashboard-design]]
+* [[20-best-dashboard-uiux-design-principles-you-need-in-2025]]
+* [[26-dashboard-design-process]]

@@ -1,5 +1,9 @@
 # UX Pattern Oracle — Copilot Instructions
 
+**IMPORTANT: This is a NON RAG-FIRST MCP.**
+
+Default behavior must work without LLM/API keys. LLM usage is opt-in only and must be explicitly triggered via environment variables or command flags. Any future implementation must respect this principle before suggesting RAG-based solutions.
+
 This repository is a self-contained remote MCP server that builds and serves a
 knowledge graph of UX and Behavioural Design Patterns.
 

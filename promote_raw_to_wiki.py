@@ -126,6 +126,19 @@ def _sanitize_output(text: str) -> str:
     return cleaned
 
 
+def _ensure_heading(text: str, title: str) -> str:
+    """Ensure content starts with a heading. If not, prepend the title as a heading."""
+    stripped = text.strip()
+    if stripped.startswith("#"):
+        return stripped
+    
+    if VERBOSE:
+        print(f"[fix-heading] Content missing heading, prepending: # {title}", flush=True)
+    
+    # Prepend the title as a heading
+    return f"# {title}\n\n{stripped}"
+
+
 def _call_ollama(prompt: str) -> str:
     """Call Ollama to process content."""
     try:
@@ -207,14 +220,18 @@ Only use these existing slugs: {', '.join(sorted(wiki_slugs)[:20])}
     if result:
         # Sanitize output to remove any escape sequences
         sanitized = _sanitize_output(result)
-        is_valid, reason = _is_valid_wiki_output(sanitized)
+        
+        # Ensure content starts with a heading (auto-fix if missing)
+        with_heading = _ensure_heading(sanitized, title)
+        
+        is_valid, reason = _is_valid_wiki_output(with_heading)
         
         if VERBOSE:
             elapsed = time.time() - start_time
             print(f"    [validate] {reason} (took {elapsed:.1f}s)", flush=True)
         
         if is_valid:
-            return slug, sanitized
+            return slug, with_heading
         else:
             print(f"    ✗ Validation failed: {reason}", flush=True)
     

@@ -121,9 +121,19 @@ def _compile_graph() -> None:
     print("[oracle] graphify-out/graph.json not found — compiling knowledge graph …", flush=True)
     GRAPH_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    # Try Ollama backend first (no API key needed), then fall back to default
-    backend_args = ["--backend", "ollama"] if os.getenv("OLLAMA_HOST") or _ollama_available() else []
-    cmd = ["graphify", str(WIKI_DIR), "--no-viz"] + backend_args
+    # Only use LLM backend if explicitly enabled via GRAPHIFY_USE_LLM
+    use_llm = os.getenv("GRAPHIFY_USE_LLM", "").lower() in ("true", "1", "yes")
+    
+    if use_llm:
+        # User explicitly requested LLM backend
+        backend = os.getenv("GRAPHIFY_BACKEND", "ollama")
+        model = os.getenv("GRAPHIFY_MODEL", "")
+        backend_args = ["--backend", backend]
+        model_args = ["--model", model] if model else []
+        cmd = ["graphify", str(WIKI_DIR), "--no-viz"] + backend_args + model_args
+    else:
+        # Default: use basic graph generation (no LLM required)
+        cmd = ["graphify", str(WIKI_DIR), "--no-viz"]
 
     print(f"[oracle] Running: {' '.join(cmd)}", flush=True)
     result = subprocess.run(
@@ -131,17 +141,6 @@ def _compile_graph() -> None:
         capture_output=False,   # stream stdout/stderr directly to cloud logs
         text=True,
     )
-
-    if result.returncode != 0:
-        # If Ollama failed and we tried it, retry without backend flag
-        if backend_args:
-            print("[oracle] Ollama backend failed, retrying with default backend...", flush=True)
-            cmd = ["graphify", str(WIKI_DIR), "--no-viz"]
-            result = subprocess.run(
-                cmd,
-                capture_output=False,
-                text=True,
-            )
 
     if result.returncode != 0:
         print("[oracle] Graphify failed, falling back to basic graph generator...", flush=True)
@@ -197,19 +196,6 @@ def _compile_basic_graph() -> None:
     }
     GRAPH_FILE.write_text(json.dumps(graph, indent=2), encoding="utf-8")
     print(f"[oracle] Basic graph generated with {len(nodes)} nodes and {len(links)} links.", flush=True)
-
-
-def _ollama_available() -> bool:
-    """Check if Ollama is available locally."""
-    try:
-        result = subprocess.run(
-            ["ollama", "list"],
-            capture_output=True,
-            timeout=2,
-        )
-        return result.returncode == 0
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return False
 
 
 def _startup_check() -> None:
