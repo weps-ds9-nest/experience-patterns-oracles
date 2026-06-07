@@ -101,7 +101,6 @@ The `promote_raw_to_wiki.py` script:
 - Configurable timeout via `OLLAMA_TIMEOUT` env var (default 240s)
 - Provides detailed validation error messages
 - Processes in batches of 10 with confirmation
-- Follows the logic from `.github/prompts/build-wiki.prompt.md`
 
 The `update_wikilinks.py` script:
 - Updates the ## Related section in wiki files
@@ -132,21 +131,6 @@ It will fetch only the new entry and skip everything already scraped.
 `raw/<slug>.md`. `ingest.py` will skip it automatically. Promote it to `wiki/`
 when ready. The slug should be lowercase with hyphens, e.g.
 `raw/progressive-disclosure-pattern.md`.
-
-## Content ingestion failure monitoring
-
-After **any** `ingest.py` run, scan the terminal output for this pattern:
-consecutive `[provider] failed` or `[provider] returned login wall` lines from
-the **same provider**. If the same provider fails **3 or more times in a row**:
-
-1. Create or append to `logs/provider-failures.md` (create `logs/` if missing)
-2. Add a dated entry with: provider name, failure count, and the affected URLs
-3. Flag whether a replacement content ingestion service should be investigated
-
-**When to suggest a new methodology**: if the same provider accumulates failures
-across multiple ingest runs without recovery, research a replacement content ingestion
-service and propose updating `MEDIUM_DOMAINS` or the provider list in
-`_build_fetch_urls()` in `ingest.py`.
 
 ## MCP tools (server.py)
 
@@ -212,3 +196,9 @@ experience-patterns-oracles/
 ```
 
 **Note:** The `raw/` and `links/` directories are excluded from git for copyright and bloat reasons. See `DATA_MANAGEMENT.md` for local workflow instructions.
+
+## TODO: Future Enhancements
+
+- Implement provider failure monitoring system (logs/provider-failures.md)
+- Create build-wiki.prompt.md for Ollama promotion prompts
+- Add automated testing for ingest/curate workflow

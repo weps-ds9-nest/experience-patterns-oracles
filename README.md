@@ -139,6 +139,109 @@ On first run with a populated `wiki/`, the server compiles `graphify-out/graph.j
 
 The MCP server listens on `http://0.0.0.0:8000` (default).
 
+## Complete Ingest & Curation Workflow
+
+This section explains the end-to-end process from adding new URLs to having a fully functional knowledge graph.
+
+### Overview
+
+```
+URLs → Ingest → Curate → Graph Compilation → Serve
+```
+
+### Step 1: Add URLs (Optional)
+
+**Option A - Bookmark Collections:**
+Export bookmarks as CSV and drop in `links/collections/`:
+```bash
+links/collections/ux-patterns.csv
+links/collections/cognitive-biases.csv
+```
+
+**Option B - Manual Addition:**
+Add rows directly to `links/links.csv` with columns: `id, title, url, tags, description`
+
+### Step 2: Ingest Content
+
+**One-shot mode** (merge collections then fetch):
+```bash
+uv run python ingest.py
+```
+
+**Watch mode** (recommended for development):
+```bash
+uv run python ingest.py --watch
+```
+
+This step:
+- Merges all CSVs from `links/collections/` into `links/links.csv` (deduplicated by URL)
+- Fetches markdown content for new URLs via content ingestion services
+- Writes content to `raw/<slug>.md` with 2-second polite delay between requests
+
+### Step 3: Curate Content
+
+**Manual Curation:**
+1. Review files in `raw/`
+2. Edit and improve content
+3. Copy curated files to `wiki/`
+4. Add `[[wiki-links]]` to connect related patterns
+
+**Auto-Promote with Ollama** (optional):
+```bash
+uv run python promote_raw_to_wiki.py --verbose
+```
+
+**Update Wikilinks** (recommended):
+```bash
+uv run python update_wikilinks.py
+```
+
+### Step 4: Compile Knowledge Graph
+
+**Automatic compilation:**
+The server automatically compiles `graphify-out/graph.json` on startup if missing.
+
+**Manual compilation** (optional):
+```bash
+# Basic graph (no LLM required)
+uv run graphify wiki --no-viz
+
+# Semantic graph with LLM (requires API key or Ollama)
+uv run graphify wiki --no-viz --backend ollama --model llama3:latest
+```
+
+### Step 5: Serve
+
+```bash
+uv run python server.py
+# or with custom port:
+PORT=9000 uv run python server.py
+```
+
+The MCP server will be available at `http://0.0.0.0:8000` (default).
+
+### What Gets Committed to Git
+
+- ✅ `wiki/` - Curated markdown entries
+- ✅ `graphify-out/graph.json` - Compiled knowledge graph (recommended for faster deployment)
+- ❌ `raw/` - Ingested content (local only)
+- ❌ `links/` - URL collections (local only)
+
+### Troubleshooting
+
+**Ingest fails for specific URLs:**
+- Some domains block content ingestion services
+- The system uses fallback services for Medium domains
+- Check terminal output for `[provider] failed` messages
+
+**Graph compilation is slow:**
+- Commit `graphify-out/graph.json` after local compilation
+- This avoids recompilation on deployment
+
+**Wiki links not working:**
+- Run `uv run python update_wikilinks.py` to refresh connections
+- Ensure wikilinks use format: `[[pattern-name]]`
+
 ## Optional: LLM Backend for Semantic Graphs
 
 For enhanced semantic relationships in the knowledge graph, you can opt-in to LLM-based extraction:
