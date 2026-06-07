@@ -132,7 +132,7 @@ def _compile_graph() -> None:
         model_args = ["--model", model] if model else []
         cmd = ["graphify", str(WIKI_DIR), "--no-viz"] + backend_args + model_args
     else:
-        # Default: use basic graph generation (no LLM required)
+        # Default: try basic graphify, fall back to basic graph generator if no LLM key
         cmd = ["graphify", str(WIKI_DIR), "--no-viz"]
 
     print(f"[oracle] Running: {' '.join(cmd)}", flush=True)

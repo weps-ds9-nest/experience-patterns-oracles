@@ -4,13 +4,15 @@ promote_raw_to_wiki.py — Auto-promote raw/ scraped files to wiki/ using Ollama
 This script processes raw markdown files from the raw/ directory and promotes them
 to the wiki/ directory by:
 1. Cleaning boilerplate (Jina/smry.ai headers, navigation chrome)
-2. Summarizing and rewriting into compact wiki entries
+2. Summarizing and rewriting into compact wiki entries (with --no-llm, skips this step)
 3. Adding wiki-links to related patterns
 
 Usage:
     uv run python promote_raw_to_wiki.py
+    uv run python promote_raw_to_wiki.py --no-llm  # Lightweight mode, skip Ollama
 """
 
+import argparse
 import os
 import re
 import subprocess
@@ -28,7 +30,6 @@ _WIKI_DIR_RESOLVED = WIKI_DIR.resolve()
 
 # Configuration
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "240"))
-VERBOSE = "--verbose" in sys.argv or "-v" in sys.argv
 
 
 def _is_valid_wiki_output(text: str) -> tuple[bool, str]:
@@ -168,7 +169,7 @@ def _call_ollama(prompt: str) -> str:
         return None
 
 
-def _process_file(raw_path: Path, wiki_slugs: set[str]) -> tuple[str, str] | None:
+def _process_file(raw_path: Path, wiki_slugs: set[str], no_llm: bool = False) -> tuple[str, str] | None:
     """Process a single raw file and return (slug, wiki_content)."""
     start_time = time.time()
     
@@ -187,6 +188,14 @@ def _process_file(raw_path: Path, wiki_slugs: set[str]) -> tuple[str, str] | Non
     first_line = cleaned.split("\n")[0].strip()
     title = first_line if first_line and not first_line.startswith("#") else raw_path.stem.replace("-", " ").title()
     slug = slugify(title)
+
+    # Lightweight mode: direct copy with basic structure
+    if no_llm:
+        wiki_content = f"# {title}\n\n{cleaned}\n\n## Related\n[Add wiki-links manually or run update_wikilinks.py]"
+        if VERBOSE:
+            elapsed = time.time() - start_time
+            print(f"    [lightweight] Direct copy (took {elapsed:.1f}s)", flush=True)
+        return slug, wiki_content
 
     # Build prompt for Ollama
     prompt = f"""You are building a UX Pattern wiki entry.
@@ -239,12 +248,21 @@ Only use these existing slugs: {', '.join(sorted(wiki_slugs)[:20])}
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Promote raw files to wiki using Ollama")
+    parser.add_argument("--no-llm", action="store_true", help="Lightweight mode: skip Ollama, direct copy only")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
+    args = parser.parse_args()
+
+    VERBOSE = args.verbose
+
     if VERBOSE:
         print(f"[promote] Verbose mode enabled", flush=True)
         print(f"[promote] Ollama timeout: {OLLAMA_TIMEOUT}s", flush=True)
     
-    if not _ollama_available():
-        print("[promote] ERROR: Ollama is not available. Install and start Ollama first.", file=sys.stderr, flush=True)
+    if args.no_llm:
+        print(f"[promote] Lightweight mode: skipping Ollama, using direct copy", flush=True)
+    elif not _ollama_available():
+        print("[promote] ERROR: Ollama is not available. Install and start Ollama first, or use --no-llm for lightweight mode.", file=sys.stderr, flush=True)
         sys.exit(1)
 
     wiki_slugs = _get_wiki_slugs()
@@ -275,7 +293,7 @@ def main() -> None:
                 continue
 
             print(f"  Processing {slug}.md...", flush=True)
-            result = _process_file(raw_path, wiki_slugs)
+            result = _process_file(raw_path, wiki_slugs, no_llm=args.no_llm)
 
             if result:
                 new_slug, wiki_content = result

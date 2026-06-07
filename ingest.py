@@ -15,7 +15,9 @@ Usage:
     uv run python ingest.py --watch
 """
 
+import argparse
 import csv
+import os
 import sys
 import time
 from pathlib import Path
@@ -31,6 +33,12 @@ COLLECTIONS_DIR = LINKS_DIR / "collections"
 RAW_DIR         = Path("raw")
 JINA_BASE       = "https://r.jina.ai"
 DELAY_SEC       = 2
+
+# Configurable minimum content character threshold
+MIN_CONTENT_CHARS = int(os.getenv("MIN_CONTENT_CHARS", "400"))
+
+# Validate threshold
+MIN_CONTENT_CHARS = max(200, min(5000, MIN_CONTENT_CHARS))
 
 FIELDNAMES = ["id", "title", "url", "tags", "description"]
 
@@ -196,7 +204,7 @@ def _is_blocked_domain(url: str) -> bool:
 
 def _is_bad_content(path: Path) -> bool:
     """Return True if the file is too small or contains login-wall markers."""
-    if path.stat().st_size < 800:
+    if path.stat().st_size < MIN_CONTENT_CHARS:
         return True
     content = path.read_text(encoding="utf-8", errors="ignore")
     return any(marker in content for marker in BAD_CONTENT_MARKERS)
@@ -223,7 +231,7 @@ def _content_is_clean(text: str) -> bool:
     Return True if the fetched text looks like real article content.
     Checks both minimum length (short = error/login page) and known bad markers.
     """
-    if len(text) < 800:
+    if len(text) < MIN_CONTENT_CHARS:
         return False
     return not any(marker in text for marker in BAD_CONTENT_MARKERS)
 
@@ -261,9 +269,73 @@ def fetch_markdown(url: str, session: requests.Session) -> str:
     raise last_exc
 
 
+def _get_wiki_slugs() -> set[str]:
+    """Get all slugs (filenames without .md) from wiki/ for resume functionality."""
+    wiki_dir = Path("wiki")
+    if not wiki_dir.exists():
+        return set()
+    return {f.stem for f in wiki_dir.glob("*.md") if f.name != ".gitkeep"}
+
+
+def _analyze_raw_directory() -> None:
+    """Analyze the raw/ directory and show file size distribution."""
+    if not RAW_DIR.exists():
+        print("[analyze] raw/ directory does not exist.", flush=True)
+        return
+
+    files = list(RAW_DIR.glob("*.md"))
+    files = [f for f in files if f.name != ".gitkeep"]
+    
+    if not files:
+        print("[analyze] No markdown files found in raw/.", flush=True)
+        return
+
+    sizes = [f.stat().st_size for f in files]
+    total_size = sum(sizes)
+    avg_size = total_size / len(files) if files else 0
+
+    # Count files at different thresholds
+    thresholds = [200, 400, 600, 800, 1000, 2000, 5000]
+    distribution = {}
+    for threshold in thresholds:
+        count = sum(1 for s in sizes if s < threshold)
+        distribution[threshold] = count
+
+    print(f"[analyze] Total files: {len(files)}", flush=True)
+    print(f"[analyze] Total size: {total_size:,} bytes ({total_size / 1024 / 1024:.2f} MB)", flush=True)
+    print(f"[analyze] Average size: {avg_size:.0f} bytes", flush=True)
+    print(f"[analyze] Size distribution (files under threshold):", flush=True)
+    for threshold in thresholds:
+        print(f"  < {threshold:4d} chars: {distribution[threshold]:3d} files", flush=True)
+    print(f"[analyze] Files >= {thresholds[-1]} chars: {len(files) - distribution[thresholds[-1]]} files", flush=True)
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Ingest markdown content from URLs")
+    parser.add_argument("--batch-size", type=int, default=10, help="Number of files to process per batch")
+    parser.add_argument("--batch-delay", type=int, default=0, help="Delay in seconds between batches")
+    parser.add_argument("--resume", action="store_true", help="Skip files already in wiki/")
+    parser.add_argument("--dry-run", action="store_true", help="Preview what would be fetched without actually fetching")
+    parser.add_argument("--analyze", action="store_true", help="Analyze raw/ directory file size distribution")
+    args = parser.parse_args()
+
+    # Handle analyze mode (standalone)
+    if args.analyze:
+        _analyze_raw_directory()
+        return
+
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     LINKS_DIR.mkdir(parents=True, exist_ok=True)
+
+    print(f"[ingest] Using MIN_CONTENT_CHARS={MIN_CONTENT_CHARS}", flush=True)
+    if args.dry_run:
+        print(f"[ingest] DRY RUN MODE - no files will be fetched or written", flush=True)
+    if args.resume:
+        print(f"[ingest] Resume mode: will skip files already in wiki/", flush=True)
+    if args.batch_size > 0:
+        print(f"[ingest] Batch mode: {args.batch_size} files per batch", flush=True)
+    if args.batch_delay > 0:
+        print(f"[ingest] Batch delay: {args.batch_delay}s between batches", flush=True)
 
     # Step 1 — merge any new Raindrop collection exports into links/links.csv
     merge_collections()
@@ -280,11 +352,17 @@ def main() -> None:
         print("[ingest] links.csv is empty — nothing to ingest.", flush=True)
         return
 
+    # Get wiki slugs for resume mode
+    wiki_slugs = _get_wiki_slugs() if args.resume else set()
+
     # Step 3 — fetch markdown for each URL not yet scraped
     print(f"[ingest] Processing {len(rows)} link(s) ...", flush=True)
     session = requests.Session()
     session.verify = True
     session.headers.update({"User-Agent": "experience-patterns-oracle/0.1"})
+
+    processed_count = 0
+    skipped_count = 0
 
     for i, row in enumerate(rows):
         url   = (row.get("url") or "").strip()
@@ -292,24 +370,35 @@ def main() -> None:
 
         if not url:
             print(f"  SKIP row {i + 1}: no URL", flush=True)
+            skipped_count += 1
             continue
 
         try:
             validate_url(url)
         except Exception as exc:
             print(f"  SKIP row {i + 1}: unsafe/blocked URL '{url}': {exc}", file=sys.stderr, flush=True)
+            skipped_count += 1
             continue
 
         slug = slugify(title) if title else slugify(url)
+        
+        # Skip if already in wiki (resume mode)
+        if args.resume and slug in wiki_slugs:
+            print(f"  SKIP {slug}.md (already in wiki/)", flush=True)
+            skipped_count += 1
+            continue
+
         try:
             out_path = safe_output_path(RAW_DIR, slug, _RAW_DIR_RESOLVED)
         except ValueError as exc:
             print(f"  SKIP row {i + 1}: unsafe output slug generated: {exc}", file=sys.stderr, flush=True)
+            skipped_count += 1
             continue
 
         if out_path.exists():
             if not _is_bad_content(out_path):
                 print(f"  SKIP {slug}.md ({out_path.stat().st_size} bytes)", flush=True)
+                skipped_count += 1
                 continue
             print(f"  RE-FETCH {slug}.md (login wall or bad content detected)", flush=True)
 
@@ -317,15 +406,25 @@ def main() -> None:
             content = fetch_markdown(url, session)
         except Exception as exc:
             print(f"  WARN: could not fetch '{url}': {exc}", file=sys.stderr, flush=True)
+            skipped_count += 1
             continue
 
-        out_path.write_text(content, encoding="utf-8")
-        print(f"  +  {out_path}  ({len(content)} chars)", flush=True)
+        if args.dry_run:
+            print(f"  [dry-run] Would write {out_path} ({len(content)} chars)", flush=True)
+            processed_count += 1
+        else:
+            out_path.write_text(content, encoding="utf-8")
+            print(f"  +  {out_path}  ({len(content)} chars)", flush=True)
+            processed_count += 1
 
-        if i < len(rows) - 1:
+        # Batch delay
+        if args.batch_size > 0 and processed_count % args.batch_size == 0 and i < len(rows) - 1:
+            print(f"[ingest] Batch complete ({processed_count} processed). Pausing for {args.batch_delay}s...", flush=True)
+            time.sleep(args.batch_delay)
+        elif i < len(rows) - 1:
             time.sleep(DELAY_SEC)
 
-    print("[ingest] Done.", flush=True)
+    print(f"[ingest] Done. Processed: {processed_count}, Skipped: {skipped_count}", flush=True)
 
 
 def watch_mode() -> None:

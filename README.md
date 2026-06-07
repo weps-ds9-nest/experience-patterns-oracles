@@ -135,7 +135,7 @@ uv run python server.py
 PORT=9000 uv run python server.py
 ```
 
-On first run with a populated `wiki/`, the server compiles `graphify-out/graph.json` automatically using basic graph generation (no LLM required). Subsequent starts skip compilation.
+On first run with a populated `wiki/`, the server compiles `graphify-out/graph.json` automatically. If no LLM API key is configured, it falls back to basic graph generation (no LLM required). Subsequent starts skip compilation.
 
 The MCP server listens on `http://0.0.0.0:8000` (default).
 
@@ -203,12 +203,11 @@ The server automatically compiles `graphify-out/graph.json` on startup if missin
 
 **Manual compilation** (optional):
 ```bash
-# Basic graph (no LLM required)
-uv run graphify wiki --no-viz
-
 # Semantic graph with LLM (requires API key or Ollama)
 uv run graphify wiki --no-viz --backend ollama --model llama3:latest
 ```
+
+**Note:** Manual graphify requires an LLM API key. For basic graph generation without LLM, use the server auto-compilation (see Step 5) — it will fall back to a basic adjacency graph if no LLM is available.
 
 ### Step 5: Serve
 
