@@ -556,6 +556,57 @@ def predict_component_states(component_name: str, ctx: Context = None) -> str:
 
 
 # ---------------------------------------------------------------------------
+# MCP Resources
+# ---------------------------------------------------------------------------
+
+@mcp.resource("graph://knowledge-graph")
+def get_knowledge_graph() -> str:
+    """
+    The complete UX pattern knowledge graph with nodes and links.
+    """
+    graph = _load_graph()
+    if not graph:
+        logger.warning("Knowledge graph not available for resource access")
+        return json.dumps({"error": "Knowledge graph not available"}, indent=2)
+    return json.dumps(graph, indent=2)
+
+
+@mcp.resource("graph://node/{node_id}")
+def get_node_by_id(node_id: str) -> str:
+    """
+    Retrieve a specific node from the knowledge graph by ID.
+    """
+    graph = _load_graph()
+    if not graph:
+        logger.warning("Knowledge graph not available for node access")
+        return json.dumps({"error": "Knowledge graph not available"}, indent=2)
+    
+    node_map = {str(n["id"]): n for n in _nodes(graph)}
+    if node_id not in node_map:
+        logger.warning(f"Node {node_id} not found in knowledge graph")
+        return json.dumps({"error": f"Node {node_id} not found"}, indent=2)
+    
+    return json.dumps(node_map[node_id], indent=2)
+
+
+@mcp.resource("graph://nodes")
+def list_all_nodes() -> str:
+    """
+    List all nodes in the knowledge graph.
+    """
+    graph = _load_graph()
+    if not graph:
+        logger.warning("Knowledge graph not available for nodes list")
+        return json.dumps({"error": "Knowledge graph not available"}, indent=2)
+    
+    nodes = _nodes(graph)
+    return json.dumps([
+        {"id": n["id"], "label": n["label"], "norm_label": n["norm_label"]}
+        for n in nodes
+    ], indent=2)
+
+
+# ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
