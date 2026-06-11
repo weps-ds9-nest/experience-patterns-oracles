@@ -598,12 +598,47 @@ def list_all_nodes() -> str:
     if not graph:
         logger.warning("Knowledge graph not available for nodes list")
         return json.dumps({"error": "Knowledge graph not available"}, indent=2)
-    
+
     nodes = _nodes(graph)
     return json.dumps([
         {"id": n["id"], "label": n["label"], "norm_label": n["norm_label"]}
         for n in nodes
     ], indent=2)
+
+
+@mcp.resource("health://check")
+def health_check() -> str:
+    """
+    Oracle health status and available capabilities.
+    """
+    graph = _load_graph()
+    nodes = _nodes(graph)
+
+    # Determine graph status
+    if not graph:
+        graph_status = "The knowledge graph is not available"
+    elif len(nodes) == 0:
+        graph_status = "The knowledge graph is empty"
+    else:
+        graph_status = f"The knowledge graph contains {len(nodes)} patterns"
+
+    return f"""# Oracle Status
+
+The Oracle is connected and ready to serve.
+
+## Knowledge Graph
+{graph_status}
+
+## Available Tools
+The Oracle offers these consultations:
+
+- **ask_ux_oracle** — Search the UX pattern knowledge graph for concepts
+- **get_pattern_psychology** — Retrieve cognitive and psychological underpinnings of a pattern
+- **generate_design_spec** — Generate platform-specific design specifications
+- **predict_component_states** — Predict UI states for components
+
+The Oracle awaits your query.
+"""
 
 
 # ---------------------------------------------------------------------------
