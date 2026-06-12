@@ -201,7 +201,7 @@ The server automatically compiles `graphify-out/graph.json` on startup using Gra
 **Manual compilation** (optional):
 ```bash
 # Native extraction (no LLM required)
-uv run graphify wiki --no-viz
+uv run graphify update wiki
 ```
 
 ### Step 5: Serve
@@ -274,7 +274,7 @@ uv run python update_wikilinks.py --use-semantic --verbose
 
 ```bash
 # Compile knowledge graph using native extraction
-uv run graphify wiki --no-viz
+uv run graphify update wiki
 
 # Promote raw files to wiki (lightweight mode)
 uv run python promote_raw_to_wiki.py --verbose
@@ -297,7 +297,7 @@ GRAPHIFY_BACKEND=ollama
 GRAPHIFY_MODEL=llama3:latest
 
 # Compile knowledge graph with Ollama
-uv run graphify wiki --no-viz --backend ollama --model llama3:latest
+uv run graphify update wiki --backend ollama --model llama3:latest
 
 # Auto-promote raw files to wiki with Ollama
 uv run python promote_raw_to_wiki.py --use-llm --verbose

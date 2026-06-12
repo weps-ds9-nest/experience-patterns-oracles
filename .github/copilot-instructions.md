@@ -91,7 +91,7 @@ cd experience-patterns-oracles
 
 ```bash
 # Compile graph using Graphify native extraction
-uv run graphify wiki --no-viz
+uv run graphify update wiki
 
 # Promote raw files to wiki (lightweight mode, no LLM)
 uv run python promote_raw_to_wiki.py --verbose
@@ -106,7 +106,7 @@ For enhanced semantic features, you can opt-in to Ollama:
 
 ```bash
 # Compile graph with Ollama (opt-in)
-GRAPHIFY_USE_LLM=true uv run graphify wiki --no-viz --backend ollama
+GRAPHIFY_USE_LLM=true uv run graphify update wiki --backend ollama
 
 # Promote raw files with Ollama summarization (opt-in)
 uv run python promote_raw_to_wiki.py --use-llm --verbose
@@ -208,7 +208,7 @@ experience-patterns-oracles/
 ├── graphify-out/                 ← auto-generated knowledge graph (do not edit)
 │   └── graph.json
 ├── ingest.py                     ← merge collections + ingest markdown
-├── promote_raw_to_wiki.py        ← promote raw content to wiki using Ollama
+├── promote_raw_to_wiki.py        ← promote raw content to wiki (lightweight mode, no LLM; supports opt-in Ollama)
 ├── update_wikilinks.py           ← update wikilinks using semantic similarity + graphify
 ├── server.py                     ← FastMCP server + 4 tools
 ├── utils.py                      ← shared helper functions (validate_url, slugify, etc.)

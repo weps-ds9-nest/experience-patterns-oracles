@@ -117,25 +117,13 @@ def _wiki_has_content() -> bool:
 
 
 def _compile_graph() -> None:
-    """Run graphify against ./wiki using native extraction (no LLM required by default)."""
+    """Run graphify against ./wiki using native extraction (no LLM required)."""
     print("[oracle] graphify-out/graph.json not found — compiling knowledge graph …", flush=True)
     GRAPH_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-    # Only use LLM backend if explicitly enabled via GRAPHIFY_USE_LLM
-    use_llm = os.getenv("GRAPHIFY_USE_LLM", "").lower() in ("true", "1", "yes")
-    
-    if use_llm:
-        # User explicitly requested LLM backend (opt-in)
-        backend = os.getenv("GRAPHIFY_BACKEND", "ollama")
-        model = os.getenv("GRAPHIFY_MODEL", "")
-        backend_args = ["--backend", backend]
-        model_args = ["--model", model] if model else []
-        cmd = ["graphify", str(WIKI_DIR), "--no-viz"] + backend_args + model_args
-        print("[oracle] Using LLM backend for enhanced semantic extraction (opt-in).", flush=True)
-    else:
-        # Default: use Graphify's native Tree-sitter extraction and Leiden clustering (no LLM)
-        cmd = ["graphify", str(WIKI_DIR), "--no-viz"]
-        print("[oracle] Using Graphify native extraction (Tree-sitter + Leiden clustering, no LLM).", flush=True)
+    # Use 'graphify update' which works without LLM using native Tree-sitter extraction
+    cmd = ["graphify", "update", str(WIKI_DIR)]
+    print("[oracle] Using Graphify native extraction (Tree-sitter + Leiden clustering, no LLM).", flush=True)
 
     print(f"[oracle] Running: {' '.join(cmd)}", flush=True)
     result = subprocess.run(
@@ -149,9 +137,18 @@ def _compile_graph() -> None:
         print("[oracle] Note: Graphify native extraction does not require LLM/API keys.", flush=True)
         sys.exit(1)
 
-    if not GRAPH_FILE.exists():
+    # The update command creates graphify-out in the target directory, so we need to check there
+    update_graph_file = WIKI_DIR / "graphify-out" / "graph.json"
+    if not update_graph_file.exists():
         print("[oracle] ERROR: graph.json was not produced — check graphify output above.", file=sys.stderr, flush=True)
         sys.exit(1)
+    
+    # Move the graph to the expected location if it's in the wiki directory
+    if update_graph_file != GRAPH_FILE:
+        GRAPH_FILE.parent.mkdir(parents=True, exist_ok=True)
+        import shutil
+        shutil.copy(update_graph_file, GRAPH_FILE)
+        print(f"[oracle] Copied graph from {update_graph_file} to {GRAPH_FILE}", flush=True)
 
     print("[oracle] Knowledge graph compiled successfully.", flush=True)
 
@@ -595,7 +592,7 @@ def get_graphify_html_path() -> str:
     if not html_file.exists():
         logger.warning("Graphify HTML visualization not available")
         return "Graphify HTML visualization not available. Run graphify without --no-viz to generate it."
-    return f"Interactive graph available at: {html_file.resolve()}
+    return f"Interactive graph available at: {html_file.resolve()}\n"
 
 
 @mcp.resource("health://check")

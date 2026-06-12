@@ -80,14 +80,8 @@ When the server runs, it requires a compiled knowledge graph at `graphify-out/gr
 
 ### Enhanced Graph Compilation (Optional LLM)
 To build a semantic knowledge graph with enhanced relationships, you can opt-in to LLM backend:
-- **Ollama**: Set `GRAPHIFY_USE_LLM=true` and `GRAPHIFY_BACKEND=ollama`, then run `uv run python server.py` or `uv run graphify wiki --no-viz --backend ollama`.
+- **Ollama**: Set `GRAPHIFY_USE_LLM=true` and `GRAPHIFY_BACKEND=ollama`, then run `uv run python server.py` or `uv run graphify update wiki --backend ollama`.
 - **Note**: The default workflow uses Graphify's native Tree-sitter extraction and Leiden clustering without any LLM or API keys.
-
-### Basic Adjacency Fallback
-If no LLM backend is available, the server compiles a basic fallback graph. This fallback graph:
-- Simply chains patterns together in alphabetical/adjacency order.
-- Lacks semantic relationships and cognitive connections.
-- Is intended only for bootstrapping.
 
 ## Backup Strategy
 

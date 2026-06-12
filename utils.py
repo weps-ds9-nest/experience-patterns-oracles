@@ -43,8 +43,18 @@ def safe_output_path(directory: Path, slug: str, resolved_base: Path) -> Path:
     return candidate
 
 
-def slugify(text: str) -> str:
-    """Convert a title or URL into a clean, safe filename slug."""
+def slugify(text: str, max_length: int = 100) -> str:
+    """Convert a title or URL into a clean, safe filename slug with length limit."""
     text = text.lower().strip()
     text = re.sub(r"[^\w\s-]", "", text)
-    return re.sub(r"[\s_-]+", "-", text).strip("-")
+    slug = re.sub(r"[\s_-]+", "-", text).strip("-")
+    
+    # Truncate to max_length, preferably at word boundaries
+    if len(slug) > max_length:
+        slug = slug[:max_length]
+        # Try to cut at last hyphen to preserve word boundary
+        last_hyphen = slug.rfind("-")
+        if last_hyphen > max_length * 0.7:  # Only if we're not cutting too much
+            slug = slug[:last_hyphen]
+    
+    return slug.strip("-")

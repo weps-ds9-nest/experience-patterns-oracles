@@ -7,11 +7,11 @@ requires-python = ">=3.12"
 
 dependencies = [
     "fastmcp>=2.0",
-    "graphifyy>=0.1",
     "requests>=2.32",
     "uvicorn[standard]>=0.30",
     "httpx>=0.27",
     "anyio>=4.4",
+    "graphifyy>=0.8.38",
 ]
 
 [dependency-groups]

@@ -27,6 +27,8 @@ RAW_DIR = Path("raw")
 WIKI_DIR = Path("wiki")
 BATCH_SIZE = 10
 
+VERBOSE = False
+
 _WIKI_DIR_RESOLVED = WIKI_DIR.resolve()
 
 # Configuration
@@ -249,6 +251,7 @@ Only use these existing slugs: {', '.join(sorted(wiki_slugs)[:20])}
 
 
 def main() -> None:
+    global VERBOSE
     parser = argparse.ArgumentParser(description="Promote raw files to wiki (LLM-free by default)")
     parser.add_argument("--use-llm", action="store_true", help="Opt-in: Use Ollama for enhanced summarization")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
