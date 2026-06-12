@@ -11,11 +11,13 @@ knowledge graph of UX and Behavioural Design Patterns.
 
 - **`ingest.py`** — ingests and processes markdown content for
   every URL in `links/links.csv` and writes to `raw/`
-- **`promote_raw_to_wiki.py`** — curates and promotes raw markdown files to wiki/ using Ollama
-  (supports `--verbose` mode, configurable timeout via `OLLAMA_TIMEOUT`, cleans ANSI escape sequences)
-- **`update_wikilinks.py`** — updates wikilinks in wiki files using semantic similarity (Ollama) and graphify relationships
+- **`promote_raw_to_wiki.py`** — promotes raw markdown files to wiki/ using lightweight processing (default, no LLM)
+  (supports `--use-llm` for opt-in Ollama summarization, `--verbose` mode, configurable timeout)
+- **`update_wikilinks.py`** — updates wikilinks in wiki files using graph-based linking (default, no LLM)
+  (supports `--use-semantic` for opt-in Ollama semantic similarity)
 - **`server.py`** — FastMCP server; compiles `graphify-out/graph.json` on
-  startup if missing, then serves 4 MCP tools over HTTP on `$PORT` (default 8000)
+  startup using Graphify's native Tree-sitter extraction and Leiden clustering (no LLM required)
+  then serves 4 MCP tools over HTTP on `$PORT` (default 8000)
 - **`utils.py`** — shared utility functions (validate_url, slugify, safe_output_path)
 - **`wiki/`** — curated `.md` entries that feed the knowledge graph; edit these
 - **`raw/`** — auto-generated ingested markdown; do not edit manually
@@ -51,6 +53,11 @@ Never delete entries from `links/links.csv` without explicit user confirmation.
 
 ## Workflow — adding new content
 
+**Working Directory:** All commands below assume you are in the `experience-patterns-oracles/` directory. If you're in the parent directory, first run:
+```bash
+cd experience-patterns-oracles
+```
+
 ```
 1. Export a Raindrop collection  →  drop CSV in links/collections/<name>.csv
 2. uv run python ingest.py
@@ -63,14 +70,14 @@ Never delete entries from `links/links.csv` without explicit user confirmation.
 3. Curate: promote and edit files from raw/ into wiki/
            add [[wiki-links]] to connect related patterns
    
-   # Auto-promote with Ollama (verbose mode recommended)
+   # Lightweight promotion (default, no LLM required)
    uv run python promote_raw_to_wiki.py --verbose
    
-   # Update wikilinks using semantic similarity + graph relationships
+   # Update wikilinks using graph topology (default, no LLM)
    uv run python update_wikilinks.py
 
 4. uv run python server.py
-   └── compiles graphify-out/graph.json on first run, skips on subsequent runs
+   └── compiles graphify-out/graph.json on first run using Graphify native extraction
        serves MCP over HTTP on 0.0.0.0:$PORT
 ```
 
@@ -78,46 +85,60 @@ Never delete entries from `links/links.csv` without explicit user confirmation.
 
 ## Deployment to Render
 
-### Local graph compilation with Ollama
+**Working Directory:** All commands below assume you are in the `experience-patterns-oracles/` directory.
 
-Use Ollama for local development without API keys:
+### Local graph compilation (no LLM required)
 
 ```bash
-# Compile graph with Ollama
-uv run graphify wiki --no-viz --backend ollama
+# Compile graph using Graphify native extraction
+uv run graphify wiki --no-viz
 
-# Auto-promote raw files to wiki (uses Ollama)
+# Promote raw files to wiki (lightweight mode, no LLM)
 uv run python promote_raw_to_wiki.py --verbose
 
-# Update wikilinks using semantic similarity + graph relationships
+# Update wikilinks using graph topology (no LLM)
 uv run python update_wikilinks.py
+```
+
+### Optional: Enhanced Local Development with LLM
+
+For enhanced semantic features, you can opt-in to Ollama:
+
+```bash
+# Compile graph with Ollama (opt-in)
+GRAPHIFY_USE_LLM=true uv run graphify wiki --no-viz --backend ollama
+
+# Promote raw files with Ollama summarization (opt-in)
+uv run python promote_raw_to_wiki.py --use-llm --verbose
+
+# Update wikilinks with semantic similarity (opt-in)
+uv run python update_wikilinks.py --use-semantic
 ```
 
 The `promote_raw_to_wiki.py` script:
 - Identifies raw/ files not yet in wiki/
-- Uses Ollama to clean, summarize, and add wiki-links
+- Default: lightweight mode with direct copy and basic structure (no LLM)
+- Opt-in: Uses Ollama to clean, summarize, and add wiki-links via `--use-llm`
 - Cleans ANSI escape sequences from both input and output
-- Supports `--verbose` flag for detailed logging (file sizes, processing time, Ollama output)
+- Supports `--verbose` flag for detailed logging (file sizes, processing time)
 - Configurable timeout via `OLLAMA_TIMEOUT` env var (default 240s)
 - Provides detailed validation error messages
 - Processes in batches of 10 with confirmation
 
 The `update_wikilinks.py` script:
 - Updates the ## Related section in wiki files
-- Uses semantic similarity via Ollama to find related patterns
-- Uses graphify-out/graph.json to find structurally connected nodes
-- Combines both approaches for best results
+- Default: uses graphify-out/graph.json to find structurally connected nodes (no LLM)
+- Opt-in: adds semantic similarity via Ollama with `--use-semantic`
 - Supports `--dry-run` mode to preview changes
 - Supports `--file` to update a single file
 - Supports `--verbose` for detailed logging
 
 ### Deploying to Render
 
-1. Update render.yaml to remove LLM key requirement (already done)
-2. Commit `graphify-out/graph.json` after local compilation (recommended for faster cold starts)
-3. Deploy via Render (auto-detects render.yaml)
+1. Commit `graphify-out/graph.json` after local compilation (recommended for faster cold starts)
+2. Deploy via Render (auto-detects render.yaml)
 
-The server will try Ollama on Render if available, otherwise skip graph compilation and use committed graph.json.
+The server will compile the graph on startup using Graphify's native extraction (no LLM required).
 
 ### Adding a single URL without a bookmark export
 
@@ -200,5 +221,5 @@ experience-patterns-oracles/
 ## TODO: Future Enhancements
 
 - Implement provider failure monitoring system (logs/provider-failures.md)
-- Create build-wiki.prompt.md for Ollama promotion prompts
 - Add automated testing for ingest/curate workflow
+- Explore Graphify's additional output formats (graph.html, GRAPH_REPORT.md) in MCP resources

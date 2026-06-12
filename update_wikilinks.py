@@ -1,13 +1,14 @@
 """
-update_wikilinks.py — Update wikilinks in wiki/ files using semantic similarity and graphify relationships
+update_wikilinks.py — Update wikilinks in wiki/ files using graph-based linking (LLM-free by default)
 
 This script updates the ## Related section in wiki files by:
-1. Using semantic similarity via Ollama to find related patterns
-2. Using graphify-out/graph.json to find structurally connected nodes
-3. Combining both approaches to suggest the most relevant wikilinks
+1. Using graphify-out/graph.json to find structurally connected nodes (default, no LLM)
+2. Leveraging graph topology, neighbors, and paths for suggestions
+3. Optionally using semantic similarity via Ollama when explicitly requested
 
 Usage:
-    uv run python update_wikilinks.py              # Update all wikilinks
+    uv run python update_wikilinks.py              # Update all wikilinks (graph-based, no LLM)
+    uv run python update_wikilinks.py --use-semantic  # Opt-in: Add semantic similarity via Ollama
     uv run python update_wikilinks.py --dry-run    # Preview changes
     uv run python update_wikilinks.py --file specific-file.md  # Update single file
     uv run python update_wikilinks.py --verbose    # Verbose logging
@@ -204,7 +205,7 @@ def _update_related_section(content: str, new_links: list[str]) -> str:
     return "\n".join(output)
 
 
-def _process_file(wiki_path: Path, graph: dict, wiki_slugs: set[str], dry_run: bool, verbose: bool) -> None:
+def _process_file(wiki_path: Path, graph: dict, wiki_slugs: set[str], dry_run: bool, verbose: bool, use_semantic: bool = False) -> None:
     """Process a single wiki file to update its wikilinks."""
     title, content = _extract_wiki_content(wiki_path)
     existing_links = _extract_existing_links(content)
@@ -214,16 +215,16 @@ def _process_file(wiki_path: Path, graph: dict, wiki_slugs: set[str], dry_run: b
         print(f"  [title] {title}", flush=True)
         print(f"  [existing] {len(existing_links)} links: {', '.join(sorted(existing_links))}", flush=True)
     
-    # Get graph-based neighbors
+    # Get graph-based neighbors (primary method)
     node_slug = wiki_path.stem
     graph_neighbors = _get_graph_neighbors(graph, node_slug)
     
     if verbose and graph_neighbors:
         print(f"  [graph] {len(graph_neighbors)} neighbors from graphify", flush=True)
     
-    # Get semantic matches from Ollama
+    # Get semantic matches from Ollama (opt-in only)
     semantic_matches = []
-    if _ollama_available():
+    if use_semantic and _ollama_available():
         _, body = _extract_wiki_content(wiki_path)
         semantic_matches = _call_ollama_for_related(body, wiki_slugs, top_k=5)
         if verbose:
@@ -261,14 +262,23 @@ def _process_file(wiki_path: Path, graph: dict, wiki_slugs: set[str], dry_run: b
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Update wikilinks in wiki files")
+    parser = argparse.ArgumentParser(description="Update wikilinks in wiki files (graph-based by default)")
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without writing")
     parser.add_argument("--file", type=str, help="Update only this specific file")
+    parser.add_argument("--use-semantic", action="store_true", help="Opt-in: Add semantic similarity via Ollama")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose logging")
     args = parser.parse_args()
     
     if args.verbose:
         print("[update] Verbose mode enabled", flush=True)
+    
+    if args.use_semantic:
+        print("[update] Enhanced mode: using semantic similarity via Ollama (opt-in)", flush=True)
+        if not _ollama_available():
+            print("[update] ERROR: Ollama is not available. Install and start Ollama first, or run without --use-semantic for graph-only mode.", file=sys.stderr, flush=True)
+            sys.exit(1)
+    else:
+        print("[update] Graph-based mode: using graph topology only (no LLM required)", flush=True)
     
     # Check prerequisites
     wiki_slugs = _get_wiki_slugs()
@@ -281,7 +291,8 @@ def main() -> None:
     if args.verbose:
         print(f"[update] Wiki files: {len(wiki_slugs)}", flush=True)
         print(f"[update] Graph loaded: {bool(graph)}", flush=True)
-        print(f"[update] Ollama available: {_ollama_available()}", flush=True)
+        if args.use_semantic:
+            print(f"[update] Ollama available: {_ollama_available()}", flush=True)
     
     # Determine files to process
     if args.file:
@@ -300,7 +311,7 @@ def main() -> None:
     
     for wiki_path in files_to_process:
         try:
-            _process_file(wiki_path, graph, wiki_slugs, args.dry_run, args.verbose)
+            _process_file(wiki_path, graph, wiki_slugs, args.dry_run, args.verbose, args.use_semantic)
         except Exception as e:
             print(f"  ✗ Error processing {wiki_path.name}: {e}", file=sys.stderr, flush=True)
     

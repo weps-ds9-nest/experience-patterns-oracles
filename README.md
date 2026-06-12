@@ -13,7 +13,7 @@ links/collections/*.csv  →  ingest.py  →  links/links.csv  (merged, deduped)
                                       →  server.py        (MCP over HTTP)
 ```
 
-On startup, `server.py` checks whether `graphify-out/graph.json` exists. If it doesn't, it runs `graphify ./wiki --no-viz` automatically — the server compiles its own brain before accepting any request.
+On startup, `server.py` checks whether `graphify-out/graph.json` exists. If it doesn't, it runs `graphify ./wiki --no-viz` automatically using Graphify's native Tree-sitter extraction and Leiden clustering — the server compiles its own brain before accepting any request. No LLM or API keys required.
 
 ## Project structure
 
@@ -48,6 +48,11 @@ uv sync
 **IMPORTANT:** This is a NON RAG-FIRST MCP. The default graph compilation works without any LLM or API keys. LLM usage is opt-in only.
 
 ## Usage
+
+**Working Directory:** All commands below assume you are in the `experience-patterns-oracles/` directory. If you're in the parent directory, first run:
+```bash
+cd experience-patterns-oracles
+```
 
 ### 1. Add links — Bookmark collections workflow
 
@@ -92,29 +97,21 @@ See `DATA_MANAGEMENT.md` for detailed data management instructions.
 
 ### 3. Curate — promote entries to wiki
 
-**Auto-promote with Ollama:**
+**Lightweight promotion (default, no LLM required):**
 ```bash
-# Basic promotion
+# Basic promotion - direct copy with basic structure
 uv run python promote_raw_to_wiki.py
 
-# Verbose mode (shows file sizes, processing time, Ollama output)
+# Verbose mode (shows file sizes, processing time)
 uv run python promote_raw_to_wiki.py --verbose
-
-# Custom timeout (default 240s)
-OLLAMA_TIMEOUT=300 uv run python promote_raw_to_wiki.py
 ```
-
-The script now:\- Cleans ANSI escape sequences from both input and output
-- Provides detailed validation error messages
-- Supports configurable timeout via `OLLAMA_TIMEOUT` env var
-- Logs processing metrics in verbose mode
 
 **Manual curation:**
 Copy and edit files from `raw/` into `wiki/`. Add `[[wiki-links]]` to connect related patterns.
 
-**Update wikilinks:**
+**Update wikilinks (graph-based, no LLM):**
 ```bash
-# Update all wikilinks using semantic similarity + graph relationships
+# Update all wikilinks using graph topology
 uv run python update_wikilinks.py
 
 # Preview changes without writing
@@ -186,12 +183,12 @@ This step:
 3. Copy curated files to `wiki/`
 4. Add `[[wiki-links]]` to connect related patterns
 
-**Auto-Promote with Ollama** (optional):
+**Lightweight Promotion** (default, no LLM):
 ```bash
 uv run python promote_raw_to_wiki.py --verbose
 ```
 
-**Update Wikilinks** (recommended):
+**Update Wikilinks** (recommended, graph-based):
 ```bash
 uv run python update_wikilinks.py
 ```
@@ -199,15 +196,13 @@ uv run python update_wikilinks.py
 ### Step 4: Compile Knowledge Graph
 
 **Automatic compilation:**
-The server automatically compiles `graphify-out/graph.json` on startup if missing.
+The server automatically compiles `graphify-out/graph.json` on startup using Graphify's native Tree-sitter extraction and Leiden clustering. No LLM required.
 
 **Manual compilation** (optional):
 ```bash
-# Semantic graph with LLM (requires API key or Ollama)
-uv run graphify wiki --no-viz --backend ollama --model llama3:latest
+# Native extraction (no LLM required)
+uv run graphify wiki --no-viz
 ```
-
-**Note:** Manual graphify requires an LLM API key. For basic graph generation without LLM, use the server auto-compilation (see Step 5) — it will fall back to a basic adjacency graph if no LLM is available.
 
 ### Step 5: Serve
 
@@ -241,14 +236,12 @@ The MCP server will be available at `http://0.0.0.0:8000` (default).
 - Run `uv run python update_wikilinks.py` to refresh connections
 - Ensure wikilinks use format: `[[pattern-name]]`
 
-## Optional: LLM Backend for Semantic Graphs
+## Optional: LLM Backend for Enhanced Processing
 
-For enhanced semantic relationships in the knowledge graph, you can opt-in to LLM-based extraction:
+For enhanced semantic relationships and summarization, you can opt-in to LLM-based features:
 
+### Enhanced Graph Compilation
 ```bash
-# Install optional LLM dependencies
-uv sync --group dev
-
 # Set in .env:
 GRAPHIFY_USE_LLM=true
 GRAPHIFY_BACKEND=ollama
@@ -258,13 +251,41 @@ GRAPHIFY_MODEL=llama3:latest
 uv run python server.py
 ```
 
-**Note:** LLM backend is optional. The default basic graph generation works without any LLM or API keys.
+### Enhanced Content Promotion
+```bash
+# Opt-in to Ollama summarization during promotion
+uv run python promote_raw_to_wiki.py --use-llm --verbose
+
+# Custom timeout (default 240s)
+OLLAMA_TIMEOUT=300 uv run python promote_raw_to_wiki.py --use-llm
+```
+
+### Enhanced Wikilink Updates
+```bash
+# Add semantic similarity to graph-based linking
+uv run python update_wikilinks.py --use-semantic --verbose
+```
+
+**Note:** All LLM features are optional. The default workflow uses Graphify's native Tree-sitter extraction and Leiden clustering without any LLM or API keys.
 
 ## Deployment to Render
 
-### Local development with LLM (optional)
+### Local development (no LLM required)
 
-For local development with enhanced semantic graphs, you can opt-in to Ollama:
+```bash
+# Compile knowledge graph using native extraction
+uv run graphify wiki --no-viz
+
+# Promote raw files to wiki (lightweight mode)
+uv run python promote_raw_to_wiki.py --verbose
+
+# Update wikilinks using graph topology
+uv run python update_wikilinks.py
+```
+
+### Optional: Enhanced Local Development with LLM
+
+For enhanced semantic graphs and summarization, you can opt-in to Ollama:
 
 ```bash
 # Install optional LLM dependencies
@@ -278,14 +299,14 @@ GRAPHIFY_MODEL=llama3:latest
 # Compile knowledge graph with Ollama
 uv run graphify wiki --no-viz --backend ollama --model llama3:latest
 
-# Auto-promote raw files to wiki (with verbose logging)
-uv run python promote_raw_to_wiki.py --verbose
+# Auto-promote raw files to wiki with Ollama
+uv run python promote_raw_to_wiki.py --use-llm --verbose
 
-# Update wikilinks using semantic similarity + graph relationships
-uv run python update_wikilinks.py
+# Update wikilinks with semantic similarity
+uv run python update_wikilinks.py --use-semantic
 ```
 
-**Note:** LLM backend is optional. The default basic graph generation works without any LLM or API keys.
+**Note:** LLM backend is optional. The default workflow uses Graphify's native extraction without any LLM or API keys.
 
 ### Deploying
 
@@ -293,7 +314,7 @@ Render automatically detects `render.yaml` in your repository. Connect your repo
 
 ### Graph compilation on Render
 
-The server compiles the graph on startup using basic graph generation (no LLM required). For fastest cold starts, commit `graphify-out/graph.json` after local compilation.
+The server compiles the graph on startup using Graphify's native Tree-sitter extraction and Leiden clustering (no LLM required). For fastest cold starts, commit `graphify-out/graph.json` after local compilation.
 
 ## Access & Usage
 
@@ -331,11 +352,17 @@ Transport: SSE (Server-Sent Events)
 | Package | Role |
 |---|---|
 | `fastmcp` | MCP server framework |
-| `graphifyy` | Knowledge graph compiler (runs on startup) |
+| `graphifyy` | Knowledge graph compiler (Tree-sitter + Leiden clustering, no LLM required) |
 | `requests` | HTTP client for `ingest.py` |
 | `uvicorn` | ASGI server for HTTP transport |
 | `httpx` | HTTP engine for FastMCP transport layer |
 | `anyio` | Async I/O compatibility |
+
+### Optional Dependencies
+
+| Package | Role |
+|---|---|
+| `openai` | Optional LLM backend for enhanced semantic features (opt-in only) |
 
 ## Data Management
 

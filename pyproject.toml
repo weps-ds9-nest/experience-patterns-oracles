@@ -19,6 +19,9 @@ dev = [
     "ruff>=0.6",
     "pytest>=8.2",
     "watchfiles>=0.21",
+]
+
+llm = [
     "openai>=1.0",  # Optional: for LLM backend (set GRAPHIFY_USE_LLM=true to enable)
 ]
 

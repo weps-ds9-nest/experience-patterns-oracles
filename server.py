@@ -117,7 +117,7 @@ def _wiki_has_content() -> bool:
 
 
 def _compile_graph() -> None:
-    """Run graphify against ./wiki and write graphify-out/graph.json."""
+    """Run graphify against ./wiki using native extraction (no LLM required by default)."""
     print("[oracle] graphify-out/graph.json not found — compiling knowledge graph …", flush=True)
     GRAPH_FILE.parent.mkdir(parents=True, exist_ok=True)
 
@@ -125,15 +125,17 @@ def _compile_graph() -> None:
     use_llm = os.getenv("GRAPHIFY_USE_LLM", "").lower() in ("true", "1", "yes")
     
     if use_llm:
-        # User explicitly requested LLM backend
+        # User explicitly requested LLM backend (opt-in)
         backend = os.getenv("GRAPHIFY_BACKEND", "ollama")
         model = os.getenv("GRAPHIFY_MODEL", "")
         backend_args = ["--backend", backend]
         model_args = ["--model", model] if model else []
         cmd = ["graphify", str(WIKI_DIR), "--no-viz"] + backend_args + model_args
+        print("[oracle] Using LLM backend for enhanced semantic extraction (opt-in).", flush=True)
     else:
-        # Default: try basic graphify, fall back to basic graph generator if no LLM key
+        # Default: use Graphify's native Tree-sitter extraction and Leiden clustering (no LLM)
         cmd = ["graphify", str(WIKI_DIR), "--no-viz"]
+        print("[oracle] Using Graphify native extraction (Tree-sitter + Leiden clustering, no LLM).", flush=True)
 
     print(f"[oracle] Running: {' '.join(cmd)}", flush=True)
     result = subprocess.run(
@@ -143,9 +145,9 @@ def _compile_graph() -> None:
     )
 
     if result.returncode != 0:
-        print("[oracle] Graphify failed, falling back to basic graph generator...", flush=True)
-        _compile_basic_graph()
-        return
+        print("[oracle] ERROR: Graphify failed. Check the output above for details.", file=sys.stderr, flush=True)
+        print("[oracle] Note: Graphify native extraction does not require LLM/API keys.", flush=True)
+        sys.exit(1)
 
     if not GRAPH_FILE.exists():
         print("[oracle] ERROR: graph.json was not produced — check graphify output above.", file=sys.stderr, flush=True)
@@ -154,48 +156,7 @@ def _compile_graph() -> None:
     print("[oracle] Knowledge graph compiled successfully.", flush=True)
 
 
-def _compile_basic_graph() -> None:
-    """Generate a basic graph from wiki files without LLM."""
-    print("[oracle] Generating basic graph from wiki files...", flush=True)
-    
-    nodes = []
-    links = []
-    
-    for i, md_file in enumerate(sorted(WIKI_DIR.glob("*.md"))):
-        if md_file.name == ".gitkeep":
-            continue
-            
-        content = md_file.read_text(encoding="utf-8")
-        # Extract title from first heading or filename
-        first_line = content.split("\n")[0].strip()
-        if first_line.startswith("#"):
-            title = first_line.lstrip("#").strip()
-        else:
-            title = md_file.stem.replace("-", " ").title()
-        
-        nodes.append({
-            "id": i,
-            "label": title,
-            "norm_label": md_file.stem,
-            "file_type": "markdown",
-            "source_file": str(md_file.resolve().relative_to(_WIKI_DIR_RESOLVED))
-        })
-    
-    # Create basic links between adjacent files
-    for i in range(len(nodes) - 1):
-        links.append({
-            "source": nodes[i]["id"],
-            "target": nodes[i+1]["id"],
-            "relation": "adjacency"
-        })
-    
-    graph = {
-        "graph_type": "basic-adjacency",
-        "nodes": nodes,
-        "links": links
-    }
-    GRAPH_FILE.write_text(json.dumps(graph, indent=2), encoding="utf-8")
-    print(f"[oracle] Basic graph generated with {len(nodes)} nodes and {len(links)} links.", flush=True)
+# Removed: _compile_basic_graph() - Graphify native extraction is used by default
 
 
 def _startup_check() -> None:
@@ -211,8 +172,10 @@ def _startup_check() -> None:
     # Check graph quality
     try:
         graph = _load_graph()
-        if graph.get("graph_type") == "basic-adjacency":
-            print("[oracle] WARN: Graph uses basic adjacency links only. Run graphify with an LLM backend for semantic relationships.", flush=True)
+        graph_type = graph.get("graph_type", "unknown")
+        print(f"[oracle] Graph type: {graph_type}", flush=True)
+        if graph_type == "basic-adjacency":
+            print("[oracle] INFO: Using basic graph structure. For enhanced semantic relationships, opt-in to LLM backend via GRAPHIFY_USE_LLM=true.", flush=True)
     except Exception:
         pass
 
@@ -606,6 +569,35 @@ def list_all_nodes() -> str:
     ], indent=2)
 
 
+@mcp.resource("graphify://report")
+def get_graphify_report() -> str:
+    """
+    Graphify's human-readable audit report (GRAPH_REPORT.md) if available.
+    This report provides insights into graph structure, communities, and key nodes.
+    """
+    report_file = GRAPH_FILE.parent / "GRAPH_REPORT.md"
+    if not report_file.exists():
+        logger.warning("Graphify report not available")
+        return "Graphify report not available. Run graphify with --no-viz to generate it."
+    try:
+        return report_file.read_text(encoding="utf-8")
+    except Exception as e:
+        logger.warning(f"Error reading Graphify report: {e}")
+        return f"Error reading Graphify report: {e}"
+
+
+@mcp.resource("graphify://html")
+def get_graphify_html_path() -> str:
+    """
+    Path to Graphify's interactive HTML visualization (graph.html) if available.
+    """
+    html_file = GRAPH_FILE.parent / "graph.html"
+    if not html_file.exists():
+        logger.warning("Graphify HTML visualization not available")
+        return "Graphify HTML visualization not available. Run graphify without --no-viz to generate it."
+    return f"Interactive graph available at: {html_file.resolve()}
+
+
 @mcp.resource("health://check")
 def health_check() -> str:
     """
@@ -636,6 +628,13 @@ The Oracle offers these consultations:
 - **get_pattern_psychology** — Retrieve cognitive and psychological underpinnings of a pattern
 - **generate_design_spec** — Generate platform-specific design specifications
 - **predict_component_states** — Predict UI states for components
+
+## Available Resources
+- **graph://knowledge-graph** — Complete knowledge graph (JSON)
+- **graph://node/{{node_id}}** — Specific node by ID
+- **graph://nodes** — List all nodes
+- **graphify://report** — Graphify audit report (GRAPH_REPORT.md)
+- **graphify://html** — Path to interactive HTML visualization
 
 The Oracle awaits your query.
 """

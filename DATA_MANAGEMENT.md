@@ -16,6 +16,11 @@ This document explains how data is managed locally.
 
 ## Local Workflow
 
+**Working Directory:** All commands below assume you are in the `experience-patterns-oracles/` directory. If you're in the parent directory, first run:
+```bash
+cd experience-patterns-oracles
+```
+
 ### For Content Contributors
 
 1. **Add new URLs** to `links/collections/` (e.g., export bookmarks as CSV)
@@ -56,19 +61,27 @@ Do NOT commit:
 If you need to rebuild the data from scratch:
 
 1. Clone the repository
-2. Add your URL collections to `links/collections/`
-3. Run `uv run python ingest.py`
-4. Curate content from `raw/` to `wiki/`
-5. Run `uv run python server.py` to compile the graph
+2. Navigate to the project directory:
+   ```bash
+   cd experience-patterns-oracles
+   ```
+3. Install dependencies:
+   ```bash
+   uv sync
+   ```
+4. Add your URL collections to `links/collections/`
+5. Run `uv run python ingest.py`
+6. Curate content from `raw/` to `wiki/`
+7. Run `uv run python server.py` to compile the graph
 
 ## Knowledge Graph Compilation
 
 When the server runs, it requires a compiled knowledge graph at `graphify-out/graph.json` to power the pattern relationship matching.
 
-### LLM Semantic Graph (Recommended)
-To build a semantic knowledge graph that maps meaningful, cognitive relationships between patterns, run `graphify` with an LLM backend:
-- **Ollama**: Ensure Ollama is running locally with the `llama3` model, then run `uv run graphify wiki --no-viz --backend ollama`.
-- **Gemini**: Set your `GEMINI_API_KEY` environment variable, then run `uv run graphify wiki --no-viz`.
+### Enhanced Graph Compilation (Optional LLM)
+To build a semantic knowledge graph with enhanced relationships, you can opt-in to LLM backend:
+- **Ollama**: Set `GRAPHIFY_USE_LLM=true` and `GRAPHIFY_BACKEND=ollama`, then run `uv run python server.py` or `uv run graphify wiki --no-viz --backend ollama`.
+- **Note**: The default workflow uses Graphify's native Tree-sitter extraction and Leiden clustering without any LLM or API keys.
 
 ### Basic Adjacency Fallback
 If no LLM backend is available, the server compiles a basic fallback graph. This fallback graph:
