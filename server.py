@@ -279,8 +279,7 @@ mcp = FastMCP("UX_Pattern_Oracle")
 
 @mcp.custom_route("/health", methods=["GET"])
 async def health(request: Request) -> JSONResponse:
-    if not _check_auth(request):
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+    # Skip auth for health checks to allow Render/external monitoring
     logger.info("Health check requested")
     return JSONResponse({"status": "ok"})
 
